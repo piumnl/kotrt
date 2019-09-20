@@ -13,15 +13,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.kotrt;
+package org.kotrt.maillist;
 
-import org.kotrt.bean.User;
-import org.kotrt.util.MailUtil;
-
-import javax.mail.internet.MimeMessage;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
+
+import javax.mail.internet.MimeMessage;
+
+import org.kotrt.maillist.bean.User;
+import org.kotrt.maillist.util.MailUtil;
 
 /**
  * 启动类
@@ -44,20 +45,8 @@ public class Application {
 
     public static void main(String[] args) throws Exception {
         run();
-        //runSend();
         latch.await();
     }
-
-//    private static void runSend() {
-//        Thread thread = new Thread(() -> {
-//            lock.lock();
-//            MailUtil.batchSend(queue,userList);
-//            queue.clear();
-//            lock.unlock();
-//        });
-//        thread.start();
-//    }
-
 
     private static void run() {
         Thread thread = new Thread(() -> {
