@@ -32,6 +32,8 @@ import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeMessage;
 
 import org.kotrt.maillist.bean.User;
+import org.kotrt.maillist.logger.JavaMailLogger;
+import org.slf4j.LoggerFactory;
 
 public class MailUtil {
 
@@ -39,9 +41,9 @@ public class MailUtil {
 
     private static Session session;
 
-    private static String username = "2457431193@qq.com";
-    private static String password = "zx";
+    private static String username = "kotrt-malt111@foxmail.com";
 
+    private static String password = "111";
 
     static {
         props.put("mail.transport.protocol", "smtp");
@@ -57,6 +59,7 @@ public class MailUtil {
                 return new PasswordAuthentication(username, password);
             }
         });
+        session.setDebugOut(new JavaMailLogger(LoggerFactory.getLogger(MailUtil.class)));
         session.setDebug(true);
     }
 
