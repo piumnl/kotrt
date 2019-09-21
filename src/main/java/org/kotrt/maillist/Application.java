@@ -42,8 +42,6 @@ public class Application {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(Application.class);
 
-    private static List<MimeMessage> queue = new ArrayList<>();
-
     private static CountDownLatch latch = new CountDownLatch(1);
 
     private static List<User> userList = new ArrayList<>();
@@ -77,18 +75,16 @@ public class Application {
         Thread thread = new Thread(() -> {
             while (true) {
                 LOGGER.info("开始收取邮件.");
-                List<MimeMessage> email = MailUtil.getEmail();
-                if (email != null) {
-                    System.out.println(email.size());
-                    queue.addAll(email);
-                    MailUtil.batchSend(queue, userList);
-                    queue.clear();
+                List<MimeMessage> emails = MailUtil.getEmails();
+                LOGGER.info("新邮件条数:" + emails);
+                if (emails != null) {
+                    MailUtil.batchSend(emails, userList);
                 }
                 LOGGER.info("邮件收取结束.");
                 try {
                     Thread.sleep(5 * 1000 * 60);
                 } catch (Exception e) {
-                    e.printStackTrace();
+                    LOGGER.error(e.getMessage(),e);
                 }
             }
 

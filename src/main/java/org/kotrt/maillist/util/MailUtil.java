@@ -15,26 +15,17 @@
  */
 package org.kotrt.maillist.util;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Properties;
-
-import javax.mail.Authenticator;
-import javax.mail.Flags;
-import javax.mail.Folder;
-import javax.mail.Message;
-import javax.mail.MessagingException;
-import javax.mail.PasswordAuthentication;
-import javax.mail.Session;
-import javax.mail.Store;
-import javax.mail.Transport;
-import javax.mail.internet.InternetAddress;
-import javax.mail.internet.MimeMessage;
-
 import org.kotrt.maillist.bean.User;
 import org.kotrt.maillist.logger.JavaMailLogger;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import javax.mail.*;
+import javax.mail.internet.InternetAddress;
+import javax.mail.internet.MimeMessage;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Properties;
 
 public class MailUtil {
 
@@ -63,8 +54,9 @@ public class MailUtil {
             }
         });
         session.setDebugOut(new JavaMailLogger(LoggerFactory.getLogger(MailUtil.class)));
-        session.setDebug(true);
+        session.setDebug(false);
     }
+
 
     public static void batchSend(List<MimeMessage> messageList, List<User> userList) {
         LOGGER.info("开始发送邮件.");
@@ -80,61 +72,59 @@ public class MailUtil {
                 }
             }
         } catch (Exception e) {
-            e.printStackTrace();
+             LOGGER.error(e.getMessage(),e);
         }finally {
             if (transport != null) {
                 try {
                     transport.close();
                 } catch (MessagingException e) {
-                    e.printStackTrace();
+                     LOGGER.error(e.getMessage(),e);
                 }
             }
         }
         LOGGER.info("邮件发送完成.");
     }
 
-    private static MimeMessage buildSendMessage(Session session, Message message) throws Exception {
-        MimeMessage mimeMessage = new MimeMessage(session);
+    private static MimeMessage buildSendMessage(Message message) throws Exception {
+        MimeMessage mimeMessage = new MimeMessage((MimeMessage) message);
         mimeMessage.setFrom(new InternetAddress(username));
-        mimeMessage.setSentDate(message.getSentDate());
-        mimeMessage.setSubject(message.getSubject());
-        mimeMessage.setText(message.getContent().toString());
         return mimeMessage;
     }
 
-    public static List<MimeMessage> getEmail() {
+    public static List<MimeMessage> getEmails() {
         Store store = null;
         Folder folder = null;
         try {
             store = session.getStore(props.getProperty("mail.store.protocol"));
             store.connect(props.getProperty("mail.imap.host"), username, password);
+
             folder = store.getFolder("inbox");
             folder.open(Folder.READ_WRITE);
             List<MimeMessage> notReadMessage = new ArrayList<>();
-            Message[] messages = folder.getMessages();
+            Message[] messages = folder.getMessages(folder.getMessageCount() - folder.getUnreadMessageCount() + 1,folder.getMessageCount());
             for(Message msg : messages){
                 if (!msg.getFlags().contains(Flags.Flag.SEEN)) {
-                    notReadMessage.add(buildSendMessage(session, msg));
+                    notReadMessage.add(buildSendMessage(msg));
                 }
                 msg.setFlag(Flags.Flag.SEEN, true);
             }
             return notReadMessage;
         } catch (Exception e) {
-            e.printStackTrace();
+            LOGGER.error(e.getMessage(),e);
         } finally {
             try {
                 if (folder != null) {
                     folder.close(true);
                 }
             }catch (Exception e){
-                e.printStackTrace();
+                 LOGGER.error(e.getMessage(),e);
             }
             try {
                 if (store != null) {
                     store.close();
                 }
             } catch (MessagingException e) {
-                e.printStackTrace();
+                LOGGER.error(e.getMessage(),e);
             }
         }
         return null;
