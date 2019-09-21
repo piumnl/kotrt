@@ -33,8 +33,9 @@ public class MailUtil {
                 return new PasswordAuthentication(username, password);
             }
         });
-        session.setDebug(true);
+        session.setDebug(false);
     }
+
 
     public static void batchSend(List<MimeMessage> messageList, List<User> userList) {
         Transport transport = null;
@@ -61,12 +62,9 @@ public class MailUtil {
         }
     }
 
-    private static MimeMessage buildSendMessage(Session session, Message message) throws Exception {
-        MimeMessage mimeMessage = new MimeMessage(session);
+    private static MimeMessage buildSendMessage(Message message) throws Exception {
+        MimeMessage mimeMessage = new MimeMessage((MimeMessage) message);
         mimeMessage.setFrom(new InternetAddress(username));
-        mimeMessage.setSentDate(message.getSentDate());
-        mimeMessage.setSubject(message.getSubject());
-        mimeMessage.setText(message.getContent().toString());
         return mimeMessage;
     }
 
@@ -76,13 +74,14 @@ public class MailUtil {
         try {
             store = session.getStore(props.getProperty("mail.store.protocol"));
             store.connect(props.getProperty("mail.imap.host"), username, password);
+
             folder = store.getFolder("inbox");
             folder.open(Folder.READ_WRITE);
             List<MimeMessage> notReadMessage = new ArrayList<>();
-            Message[] messages = folder.getMessages();
+            Message[] messages = folder.getMessages(folder.getMessageCount() - folder.getUnreadMessageCount() + 1,folder.getMessageCount());
             for(Message msg : messages){
                 if (!msg.getFlags().contains(Flags.Flag.SEEN)) {
-                    notReadMessage.add(buildSendMessage(session, msg));
+                    notReadMessage.add(buildSendMessage(msg));
                 }
                 msg.setFlag(Flags.Flag.SEEN, true);
             }
