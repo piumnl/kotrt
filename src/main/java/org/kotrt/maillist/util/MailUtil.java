@@ -18,6 +18,7 @@ package org.kotrt.maillist.util;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
+import java.util.Set;
 
 import javax.mail.Authenticator;
 import javax.mail.Flags;
@@ -44,7 +45,7 @@ public class MailUtil {
 
     private static Session session;
 
-    private static String username = "kotrt-malt111@foxmail.com";
+    private static String username = "kotrt-232t@foxmail.com";
 
     private static String password = "111";
 
@@ -71,7 +72,7 @@ public class MailUtil {
     }
 
 
-    public static void batchSend(List<MimeMessage> messageList, List<User> userList) {
+    public static void batchSend(List<MimeMessage> messageList, Set<User> userList) {
         LOGGER.info("开始发送邮件.");
         Transport transport = null;
         try {
