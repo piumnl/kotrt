@@ -7,13 +7,17 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>org.kotrt</groupId>
-    <artifactId>kotrt</artifactId>
+    <artifactId>maillist</artifactId>
     <version>0.0.1-SNAPSHOT</version>
 
     <name>kotrt</name>
     <description>邮件列表服务</description>
 
-    <properties></properties>
+
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+    </properties>
 
     <dependencies>
         <!-- https://mvnrepository.com/artifact/javax.mail/mail -->
@@ -22,8 +26,11 @@
             <artifactId>mail</artifactId>
             <version>1.4.7</version>
         </dependency>
-
-
+        <dependency>
+            <groupId>org.apache.logging.log4j</groupId>
+            <artifactId>log4j-slf4j-impl</artifactId>
+            <version>2.12.1</version>
+        </dependency>
     </dependencies>
 
     <build>
@@ -36,6 +43,26 @@
                     <source>1.8</source>
                     <target>1.8</target>
                 </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-shade-plugin</artifactId>
+                <version>3.1.0</version>
+                <configuration>
+                    <transformers>
+                        <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                            <mainClass>org.kotrt.maillist.Application</mainClass>
+                        </transformer>
+                    </transformers>
+                </configuration>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>shade</goal>
+                        </goals>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>

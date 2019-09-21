@@ -1,6 +1,24 @@
-package org.kotrt.util;
+/**
+ * Copyright 2019-2020 the original author or authors.
+ * <p>
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.kotrt.maillist.util;
 
-import org.kotrt.bean.User;
+import org.kotrt.maillist.bean.User;
+import org.kotrt.maillist.logger.JavaMailLogger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.mail.*;
 import javax.mail.internet.InternetAddress;
@@ -11,13 +29,15 @@ import java.util.Properties;
 
 public class MailUtil {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(MailUtil.class);
+
     private static Properties props = new Properties();
 
     private static Session session;
 
-    private static String username = "2357431193@qq.com";
-    private static String password = "zqwhxwygsdsuebed";
+    private static String username = "kotrt-malt111@foxmail.com";
 
+    private static String password = "111";
 
     static {
         props.put("mail.transport.protocol", "smtp");
@@ -33,11 +53,13 @@ public class MailUtil {
                 return new PasswordAuthentication(username, password);
             }
         });
+        session.setDebugOut(new JavaMailLogger(LoggerFactory.getLogger(MailUtil.class)));
         session.setDebug(false);
     }
 
 
     public static void batchSend(List<MimeMessage> messageList, List<User> userList) {
+        LOGGER.info("开始发送邮件.");
         Transport transport = null;
         try {
             transport = session.getTransport("smtp");
@@ -50,16 +72,17 @@ public class MailUtil {
                 }
             }
         } catch (Exception e) {
-            e.printStackTrace();
+             LOGGER.error(e.getMessage(),e);
         }finally {
             if (transport != null) {
                 try {
                     transport.close();
                 } catch (MessagingException e) {
-                    e.printStackTrace();
+                     LOGGER.error(e.getMessage(),e);
                 }
             }
         }
+        LOGGER.info("邮件发送完成.");
     }
 
     private static MimeMessage buildSendMessage(Message message) throws Exception {
@@ -68,7 +91,7 @@ public class MailUtil {
         return mimeMessage;
     }
 
-    public static List<MimeMessage> getEmail() {
+    public static List<MimeMessage> getEmails() {
         Store store = null;
         Folder folder = null;
         try {
@@ -87,20 +110,21 @@ public class MailUtil {
             }
             return notReadMessage;
         } catch (Exception e) {
-            e.printStackTrace();
+            LOGGER.error(e.getMessage(),e);
         } finally {
             try {
-                if(folder!=null)
-                folder.close(true);
+                if (folder != null) {
+                    folder.close(true);
+                }
             }catch (Exception e){
-                e.printStackTrace();
+                 LOGGER.error(e.getMessage(),e);
             }
             try {
                 if (store != null) {
                     store.close();
                 }
             } catch (MessagingException e) {
-                e.printStackTrace();
+                LOGGER.error(e.getMessage(),e);
             }
         }
         return null;
