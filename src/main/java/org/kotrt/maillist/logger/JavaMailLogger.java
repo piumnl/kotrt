@@ -15,14 +15,14 @@
  */
 package org.kotrt.maillist.logger;
 
-import org.slf4j.Logger;
-
 import java.io.ByteArrayOutputStream;
 import java.io.OutputStream;
 import java.io.PrintStream;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.Optional;
+
+import org.slf4j.Logger;
 
 /**
  * @author piumnl
@@ -59,8 +59,7 @@ public class JavaMailLogger extends PrintStream {
         this.charset = Optional.of(charset).orElse(StandardCharsets.UTF_8);
         this.bos = new ByteArrayOutputStream();
         // by BufferedWriter
-        this.lineSeparator = java.security.AccessController.doPrivileged(
-                new sun.security.action.GetPropertyAction("line.separator"));
+        this.lineSeparator = System.lineSeparator();
     }
 
     @Override
