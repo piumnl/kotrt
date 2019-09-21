@@ -29,3 +29,6 @@ hs_err_pid*
 .project
 
 /target
+
+maillist.pid
+dependency-reduced-pom.xml
