@@ -26,8 +26,14 @@ public class RestartCommand implements Command {
         final Path pidFile = Paths.get(PID_FILE);
         if (Files.exists(pidFile)) {
             String pid = new String(Files.readAllBytes(pidFile));
-            Runtime.getRuntime().exec("kill -9 " + pid);
-            LOGGER.info("杀死进程 {}.", pid);
+
+            String os = System.getProperty("os.name").toLowerCase();
+            if (os.contains("linux")) {
+                Runtime.getRuntime().exec("kill -9 " + pid);
+                LOGGER.info("杀死进程 {}.", pid);
+            } else {
+                LOGGER.warn("非 Linux 系统，忽略 pid 操作！");
+            }
         } else {
             Files.createFile(pidFile);
         }
