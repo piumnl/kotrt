@@ -11,6 +11,7 @@ public interface Command {
      * 执行类
      *
      * @param args 启动参数
+     * @throws Exception
      */
     void run(String[] args) throws Exception;
 }
