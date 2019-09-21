@@ -54,4 +54,35 @@ public class User {
     public void setName(String name) {
         this.name = name;
     }
+
+    public static User parse(String line) {
+        final String[] info = line.split("\\s+");
+        return new User(info[0], info[1]);
+    }
+
+    @Override
+    public String toString() {
+        return "User{" +
+                "email='" + email + '\'' +
+                ", name='" + name + '\'' +
+                '}';
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        User user = (User) o;
+
+        if (email != null ? !email.equals(user.email) : user.email != null) return false;
+        return name != null ? name.equals(user.name) : user.name == null;
+    }
+
+    @Override
+    public int hashCode() {
+        int result = email != null ? email.hashCode() : 0;
+        result = 31 * result + (name != null ? name.hashCode() : 0);
+        return result;
+    }
 }

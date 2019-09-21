@@ -31,4 +31,6 @@ hs_err_pid*
 /target
 
 maillist.pid
+maillist.txt
+maillist.properties
 dependency-reduced-pom.xml
