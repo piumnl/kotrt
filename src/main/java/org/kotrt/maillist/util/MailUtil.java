@@ -33,9 +33,12 @@ import javax.mail.internet.MimeMessage;
 
 import org.kotrt.maillist.bean.User;
 import org.kotrt.maillist.logger.JavaMailLogger;
+import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class MailUtil {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(MailUtil.class);
 
     private static Properties props = new Properties();
 
@@ -64,6 +67,7 @@ public class MailUtil {
     }
 
     public static void batchSend(List<MimeMessage> messageList, List<User> userList) {
+        LOGGER.info("开始发送邮件.");
         Transport transport = null;
         try {
             transport = session.getTransport("smtp");
@@ -86,6 +90,7 @@ public class MailUtil {
                 }
             }
         }
+        LOGGER.info("邮件发送完成.");
     }
 
     private static MimeMessage buildSendMessage(Session session, Message message) throws Exception {
