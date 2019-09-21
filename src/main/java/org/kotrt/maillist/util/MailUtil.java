@@ -15,17 +15,26 @@
  */
 package org.kotrt.maillist.util;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Properties;
+
+import javax.mail.Authenticator;
+import javax.mail.Flags;
+import javax.mail.Folder;
+import javax.mail.Message;
+import javax.mail.MessagingException;
+import javax.mail.PasswordAuthentication;
+import javax.mail.Session;
+import javax.mail.Store;
+import javax.mail.Transport;
+import javax.mail.internet.InternetAddress;
+import javax.mail.internet.MimeMessage;
+
 import org.kotrt.maillist.bean.User;
 import org.kotrt.maillist.logger.JavaMailLogger;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import javax.mail.*;
-import javax.mail.internet.InternetAddress;
-import javax.mail.internet.MimeMessage;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Properties;
 
 public class MailUtil {
 
@@ -40,12 +49,16 @@ public class MailUtil {
     private static String password = "111";
 
     static {
-        props.put("mail.transport.protocol", "smtp");
-        props.put("mail.store.protocol", "imap");
-        props.put("mail.smtp.host", "smtp.qq.com");
-        props.put("mail.imap.host", "imap.qq.com");
+        props.setProperty("mail.transport.protocol", "smtp");
+        props.setProperty("mail.store.protocol", "imap");
+        props.setProperty("mail.smtp.host", "smtp.qq.com");
+        props.setProperty("mail.imap.host", "imap.qq.com");
         props.setProperty("mail.smtp.auth", "true");
-        props.setProperty("mail.smtp.socketFactory.class", "SSL_FACTORY");
+        props.setProperty("mail.smtp.port", "465");
+        props.setProperty("mail.smtp.ssl.enable", "true");
+        props.setProperty("mail.smtp.socketFactory.port", "465");
+        props.setProperty("mail.smtp.socketFactory.fallback", "false");
+        props.setProperty("mail.smtp.socketFactory.class", "javax.net.ssl.SSLSocketFactory");
         session = Session.getDefaultInstance(props);
         Session session = Session.getInstance(props, new Authenticator() {
             @Override
