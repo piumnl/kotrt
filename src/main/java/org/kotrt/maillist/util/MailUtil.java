@@ -33,6 +33,7 @@ import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeMessage;
 
 import org.kotrt.maillist.bean.User;
+import org.kotrt.maillist.context.Context;
 import org.kotrt.maillist.logger.JavaMailLogger;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -44,10 +45,6 @@ public class MailUtil {
     private static Properties props = new Properties();
 
     private static Session session;
-
-    private static String username = "kotrt-232t@foxmail.com";
-
-    private static String password = "111";
 
     static {
         props.setProperty("mail.transport.protocol", "smtp");
@@ -64,7 +61,9 @@ public class MailUtil {
         Session session = Session.getInstance(props, new Authenticator() {
             @Override
             protected PasswordAuthentication getPasswordAuthentication() {
-                return new PasswordAuthentication(username, password);
+
+                return new PasswordAuthentication(Context.getInstance().getUsername(),
+                        Context.getInstance().getPassword());
             }
         });
         session.setDebugOut(new JavaMailLogger(LoggerFactory.getLogger(MailUtil.class)));
@@ -77,7 +76,7 @@ public class MailUtil {
         Transport transport = null;
         try {
             transport = session.getTransport("smtp");
-            transport.connect(username, password);
+            transport.connect(Context.getInstance().getUsername(), Context.getInstance().getPassword());
             for (MimeMessage mimeMessage : messageList) {
                 LOGGER.info("开始发送邮件，邮件标题为: " + mimeMessage.getSubject());
                 for (User user : userList) {
@@ -104,7 +103,7 @@ public class MailUtil {
 
     private static MimeMessage buildSendMessage(Message message) throws Exception {
         MimeMessage mimeMessage = new MimeMessage((MimeMessage) message);
-        mimeMessage.setFrom(new InternetAddress(username));
+        mimeMessage.setFrom(new InternetAddress(Context.getInstance().getUsername()));
         return mimeMessage;
     }
 
@@ -113,7 +112,7 @@ public class MailUtil {
         Folder folder = null;
         try {
             store = session.getStore(props.getProperty("mail.store.protocol"));
-            store.connect(props.getProperty("mail.imap.host"), username, password);
+            store.connect(props.getProperty("mail.imap.host"), Context.getInstance().getUsername(), Context.getInstance().getPassword());
 
             folder = store.getFolder("inbox");
             folder.open(Folder.READ_WRITE);
