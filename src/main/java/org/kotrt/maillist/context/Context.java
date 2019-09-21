@@ -15,12 +15,16 @@
  */
 package org.kotrt.maillist.context;
 
-import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Objects;
 import java.util.Properties;
 import java.util.Set;
 
 import org.kotrt.maillist.bean.User;
 import org.kotrt.maillist.command.PropertyCommand;
+import org.kotrt.maillist.command.SubscribeUserCommand;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -37,20 +41,43 @@ public class Context {
 
     private static Context context;
 
-    private Set<User> users;
+    private Map<String, User> users;
 
     private Properties properties;
 
     private Context() {
-        users = Collections.emptySet();
+        users = new HashMap<>();
     }
 
     public Set<User> getUsers() {
-        return users;
+        return new HashSet<>(users.values());
     }
 
-    public void updateUsers(Set<User> users) {
+    public User findUser(String email) {
+        return users.get(email);
+    }
+
+    public void addUser(User user) {
+        Objects.requireNonNull(user);
+        this.users.put(user.getEmail(), user);
+        saveUser();
+    }
+
+    public void deleteUser(String email) {
+        this.users.remove(email);
+        saveUser();
+    }
+
+    public void setUsers(Map<String, User> users) {
         this.users = users;
+    }
+
+    private void saveUser() {
+        try {
+            new SubscribeUserCommand().writeSubscribeFile(getUsers());
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public String getUsername() {
