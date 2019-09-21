@@ -65,10 +65,13 @@ public class MailUtil {
             transport = session.getTransport("smtp");
             transport.connect(username, password);
             for (MimeMessage mimeMessage : messageList) {
+                LOGGER.info("开始发送邮件，邮件标题为: " + mimeMessage.getSubject());
                 for (User user : userList) {
+                    LOGGER.info("   正在发送给接收人: "+user.getName());
                     mimeMessage.setRecipients(MimeMessage.RecipientType.TO, InternetAddress.parse(user.getEmail()));
                     mimeMessage.saveChanges();
                     transport.sendMessage(mimeMessage, mimeMessage.getAllRecipients());
+                    LOGGER.info("   发送成功!");
                 }
             }
         } catch (Exception e) {
