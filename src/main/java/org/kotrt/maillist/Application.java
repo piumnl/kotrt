@@ -15,6 +15,11 @@
  */
 package org.kotrt.maillist;
 
+import java.io.IOException;
+import java.lang.management.ManagementFactory;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
@@ -23,6 +28,8 @@ import javax.mail.internet.MimeMessage;
 
 import org.kotrt.maillist.bean.User;
 import org.kotrt.maillist.util.MailUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * 启动类
@@ -33,6 +40,8 @@ import org.kotrt.maillist.util.MailUtil;
  */
 public class Application {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(Application.class);
+
     private static List<MimeMessage> queue = new ArrayList<>();
 
     private static CountDownLatch latch = new CountDownLatch(1);
@@ -40,28 +49,49 @@ public class Application {
     private static List<User> userList = new ArrayList<>();
 
     static {
-        userList.add(new User("18579115540@163.com"));
     }
 
     public static void main(String[] args) throws Exception {
+        start(args == null ? new String[0] : args);
         run();
         latch.await();
     }
 
+    private static void start(String[] args) throws IOException {
+        final Path pidFile = Paths.get("maillist.pid");
+        if (Files.exists(pidFile)) {
+            String pid = new String(Files.readAllBytes(pidFile));
+            Runtime.getRuntime().exec("kill -9 " + pid);
+            LOGGER.info("杀死进程 {}.", pid);
+        } else {
+            Files.createFile(pidFile);
+        }
+
+        final String jvmName = ManagementFactory.getRuntimeMXBean().getName();
+        final String pid = jvmName.split("@")[0];
+        Files.write(pidFile, pid.getBytes());
+        LOGGER.info("当前进程 pid：{}", pid);
+    }
+
     private static void run() {
         Thread thread = new Thread(() -> {
-            List<MimeMessage> email = MailUtil.getEmail();
-            if (email != null) {
-                System.out.println(email.size());
-                queue.addAll(email);
-                MailUtil.batchSend(queue, userList);
-                queue.clear();
+            while (true) {
+                LOGGER.info("开始收取邮件.");
+                List<MimeMessage> email = MailUtil.getEmail();
+                if (email != null) {
+                    System.out.println(email.size());
+                    queue.addAll(email);
+                    MailUtil.batchSend(queue, userList);
+                    queue.clear();
+                }
+                LOGGER.info("邮件收取结束.");
+                try {
+                    Thread.sleep(5 * 1000 * 60);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
             }
-            try {
-                Thread.sleep(5 * 1000 * 60);
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
+
         });
         thread.start();
     }
