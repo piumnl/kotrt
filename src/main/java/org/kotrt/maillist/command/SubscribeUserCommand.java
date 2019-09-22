@@ -20,9 +20,10 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.HashSet;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Scanner;
-import java.util.Set;
 
 import org.kotrt.maillist.bean.User;
 import org.kotrt.maillist.context.Context;
@@ -46,11 +47,12 @@ public class SubscribeUserCommand implements Command {
     public void run(String[] args) throws IOException {
         final Path path = Paths.get(SUBSCRIBE_FILE);
         if (Files.exists(path)) {
-            Set<User> users = readSubscribeFile(path);
-            Context.getInstance().updateUsers(users);
+            Map<String, User> users = readSubscribeFile(path);
 
-            for (User user : users) {
-                LOGGER.info("注册订阅用户 {} - {} 成功！", user.getName(), user.getEmail());
+            Context.getInstance().setUsers(users);
+
+            for (Map.Entry<String, User> entry : users.entrySet()) {
+                LOGGER.info("注册订阅用户 {} - {} 成功！", entry.getValue().getName(), entry.getValue().getEmail());
             }
         } else {
             Files.createFile(path);
@@ -63,17 +65,38 @@ public class SubscribeUserCommand implements Command {
      * @param path 订阅用户文件路径
      * @return 用户信息
      */
-    private Set<User> readSubscribeFile(Path path) {
+    private Map<String, User> readSubscribeFile(Path path) {
         LOGGER.info("读取订阅用户文件：{}", path.toAbsolutePath());
-        Set<User> collection = new HashSet<>();
+        Map<String, User> result = new HashMap<>(0);
         try (final Scanner scanner = new Scanner(path, StandardCharsets.UTF_8.name())) {
             while (scanner.hasNextLine()) {
                 final String s = scanner.nextLine();
-                collection.add(User.parse(s));
+                final User user = User.parse(s);
+                result.put(user.getEmail(), user);
             }
         } catch (Exception e) {
             LOGGER.error(e.getMessage(), e);
         }
-        return collection;
+        return result;
+    }
+
+    /**
+     * 将用户信息写入到配置文件中
+     * @param collection 用户信息
+     * @throws IOException IO错误
+     */
+    public void writeSubscribeFile(Collection<User> collection) throws IOException {
+        final Path path = Paths.get(SUBSCRIBE_FILE);
+        if (Files.notExists(path)) {
+            Files.createFile(path);
+        }
+
+        StringBuilder builder = new StringBuilder();
+        for (User user : collection) {
+            builder.append(user.getEmail()).append("    ").append(user.getName()).append(System.lineSeparator());
+        }
+
+        Files.write(path, builder.toString().getBytes(StandardCharsets.UTF_8));
+        LOGGER.info("写入订阅用户到 {} 成功！", SUBSCRIBE_FILE);
     }
 }
