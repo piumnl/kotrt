@@ -15,15 +15,19 @@
  */
 package org.kotrt.maillist.command;
 
-import java.util.List;
-import java.util.concurrent.Executors;
-
-import javax.mail.internet.MimeMessage;
-
+import org.kotrt.maillist.bean.User;
 import org.kotrt.maillist.context.Context;
 import org.kotrt.maillist.util.MailUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import javax.mail.Address;
+import javax.mail.internet.InternetAddress;
+import javax.mail.internet.MimeMessage;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.Executors;
+import java.util.stream.Collectors;
 
 /**
  * 邮件的读取和发送
@@ -46,8 +50,9 @@ public class EmailCommand implements Command {
             while (true) {
                 LOGGER.info("开始收取邮件.");
                 List<MimeMessage> emails = MailUtil.getEmails();
-                LOGGER.info("新邮件条数:" + emails);
                 if (emails != null) {
+                    LOGGER.info("新邮件条数:" + emails.size());
+                    emails = filterEmail(emails);
                     MailUtil.batchSend(emails, Context.getInstance().getUsers());
                 }
                 LOGGER.info("邮件收取结束.");
@@ -58,5 +63,59 @@ public class EmailCommand implements Command {
                 }
             }
         };
+    }
+
+    private static List<MimeMessage> filterEmail(List<MimeMessage> emails) {
+        return emails.stream()
+                .filter(EmailCommand::isOtherEmailToFilterAndDoSomething)
+                .filter(EmailCommand::isEmailFromUser).
+                        collect(Collectors.toList());
+    }
+
+    private static boolean isOtherEmailToFilterAndDoSomething(MimeMessage mimeMessage) {
+        try {
+            String subject = mimeMessage.getSubject();
+            if (subject.startsWith("[订阅邮件]") || subject.startsWith("[取消订阅邮件]")) {
+
+                String registerOrNotUsername = MailUtil.getRegisterOrNotUsername(mimeMessage);
+                String registerOrNotEmail = MailUtil.getRegisterOrNotEmail(mimeMessage);
+                if (subject.startsWith("[订阅邮件]")) {
+                    User user = new User(registerOrNotEmail);
+                    user.setName(registerOrNotUsername);
+                    LOGGER.info("正在给用户: " + user.getName() + " 订阅, 他的邮件是: " + user.getEmail());
+                    Context.getInstance().addUser(user);
+                    LOGGER.info("订阅成功");
+                } else {
+                    LOGGER.info("正在给用户: " + registerOrNotUsername + " 取消订阅, 他的邮件是: " + registerOrNotEmail);
+                    Context.getInstance().deleteUser(registerOrNotEmail);
+                    LOGGER.info("取消订阅成功");
+                }
+
+                return false;
+            }
+            return true;
+        } catch (Exception e) {
+            LOGGER.error(e.getMessage(), e);
+        }
+        return true;
+    }
+
+    private static boolean isEmailFromUser(MimeMessage mimeMessage) {
+        try {
+            Set<User> users = Context.getInstance().getUsers();
+            Address[] from = mimeMessage.getFrom();
+            for (User user : users) {
+                for (Address address : from) {
+                    if (((InternetAddress) address).getAddress().equals(user.getEmail())) {
+                        return true;
+                    }
+                }
+            }
+            LOGGER.info("邮件标题为: " + mimeMessage.getSubject() + " 被过滤, 邮件来源: " + ((InternetAddress) from[0]).getAddress());
+            return false;
+        } catch (Exception e) {
+            LOGGER.error(e.getMessage(), e);
+        }
+        return false;
     }
 }

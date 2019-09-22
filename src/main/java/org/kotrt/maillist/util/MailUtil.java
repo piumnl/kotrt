@@ -15,28 +15,19 @@
  */
 package org.kotrt.maillist.util;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Properties;
-import java.util.Set;
-
-import javax.mail.Authenticator;
-import javax.mail.Flags;
-import javax.mail.Folder;
-import javax.mail.Message;
-import javax.mail.MessagingException;
-import javax.mail.PasswordAuthentication;
-import javax.mail.Session;
-import javax.mail.Store;
-import javax.mail.Transport;
-import javax.mail.internet.InternetAddress;
-import javax.mail.internet.MimeMessage;
-
 import org.kotrt.maillist.bean.User;
 import org.kotrt.maillist.context.Context;
 import org.kotrt.maillist.logger.JavaMailLogger;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import javax.mail.*;
+import javax.mail.internet.InternetAddress;
+import javax.mail.internet.MimeMessage;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Properties;
+import java.util.Set;
 
 public class MailUtil {
 
@@ -79,22 +70,40 @@ public class MailUtil {
             transport.connect(Context.getInstance().getUsername(), Context.getInstance().getPassword());
             for (MimeMessage mimeMessage : messageList) {
                 LOGGER.info("开始发送邮件，邮件标题为: " + mimeMessage.getSubject());
+
+                StringBuilder userListStr = new StringBuilder();
                 for (User user : userList) {
-                    LOGGER.info("   正在发送给接收人: "+user.getName());
-                    mimeMessage.setRecipients(MimeMessage.RecipientType.TO, InternetAddress.parse(user.getEmail()));
-                    mimeMessage.saveChanges();
-                    transport.sendMessage(mimeMessage, mimeMessage.getAllRecipients());
-                    LOGGER.info("   发送成功!");
+                    LOGGER.info("   正在发送给接收人: " + user.getName());
+                    userListStr.append(user.getEmail());
+                    userListStr.append(",");
                 }
+                userListStr.deleteCharAt(userListStr.length() - 1);
+
+                InternetAddress[] parse = InternetAddress.parse(userListStr.toString());
+                int index = 0;
+                for (User user : userList) {
+                    parse[index].setPersonal(user.getName());
+                    ++index;
+                }
+                mimeMessage.setRecipients(MimeMessage.RecipientType.TO, parse);
+
+                Address[] from = mimeMessage.getFrom();
+                InternetAddress address = (InternetAddress) from[0];
+                address.setAddress(Context.getInstance().getUsername());
+
+                mimeMessage.setFrom(address);
+                mimeMessage.saveChanges();
+                transport.sendMessage(mimeMessage, mimeMessage.getAllRecipients());
+                LOGGER.info("   全部发送成功!");
             }
         } catch (Exception e) {
-             LOGGER.error(e.getMessage(),e);
-        }finally {
+            LOGGER.error(e.getMessage(), e);
+        } finally {
             if (transport != null) {
                 try {
                     transport.close();
                 } catch (MessagingException e) {
-                     LOGGER.error(e.getMessage(),e);
+                    LOGGER.error(e.getMessage(), e);
                 }
             }
         }
@@ -102,9 +111,27 @@ public class MailUtil {
     }
 
     private static MimeMessage buildSendMessage(Message message) throws Exception {
-        MimeMessage mimeMessage = new MimeMessage((MimeMessage) message);
-        mimeMessage.setFrom(new InternetAddress(Context.getInstance().getUsername()));
-        return mimeMessage;
+        return new MimeMessage((MimeMessage) message);
+    }
+
+    public static String getRegisterOrNotUsername(Message message) throws Exception {
+        String[] registerOrNotSubject = getRegisterOrNotSubject(message);
+        return registerOrNotSubject[1];
+    }
+
+    public static String getRegisterOrNotEmail(Message message) throws Exception {
+        String[] registerOrNotSubject = getRegisterOrNotSubject(message);
+        return registerOrNotSubject[2];
+    }
+
+    private static String[] getRegisterOrNotSubject(Message message) throws Exception {
+        String subject = message.getSubject();
+        subject = subject.replace("[", "");
+        String[] split = subject.split("]");
+        if (split.length < 3) {
+            throw new Exception("注册或者取消注册的email标题格式异常!");
+        }
+        return split;
     }
 
     public static List<MimeMessage> getEmails() {
@@ -117,8 +144,8 @@ public class MailUtil {
             folder = store.getFolder("inbox");
             folder.open(Folder.READ_WRITE);
             List<MimeMessage> notReadMessage = new ArrayList<>();
-            Message[] messages = folder.getMessages(folder.getMessageCount() - folder.getUnreadMessageCount() + 1,folder.getMessageCount());
-            for(Message msg : messages){
+            Message[] messages = folder.getMessages(folder.getMessageCount() - folder.getUnreadMessageCount() + 1, folder.getMessageCount());
+            for (Message msg : messages) {
                 if (!msg.getFlags().contains(Flags.Flag.SEEN)) {
                     notReadMessage.add(buildSendMessage(msg));
                 }
@@ -126,21 +153,21 @@ public class MailUtil {
             }
             return notReadMessage;
         } catch (Exception e) {
-            LOGGER.error(e.getMessage(),e);
+            LOGGER.error(e.getMessage(), e);
         } finally {
             try {
                 if (folder != null) {
                     folder.close(true);
                 }
-            }catch (Exception e){
-                 LOGGER.error(e.getMessage(),e);
+            } catch (Exception e) {
+                LOGGER.error(e.getMessage(), e);
             }
             try {
                 if (store != null) {
                     store.close();
                 }
             } catch (MessagingException e) {
-                LOGGER.error(e.getMessage(),e);
+                LOGGER.error(e.getMessage(), e);
             }
         }
         return null;
