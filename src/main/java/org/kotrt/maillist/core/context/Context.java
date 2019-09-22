@@ -13,12 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.kotrt.maillist.context;
+package org.kotrt.maillist.core.context;
 
-import java.util.Properties;
-
-import org.kotrt.maillist.command.PropertyCommand;
-import org.kotrt.maillist.dao.UserDao;
+import org.kotrt.maillist.core.MailProperty;
+import org.kotrt.maillist.core.dao.UserDao;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -37,40 +35,24 @@ public class Context {
 
     private UserDao users;
 
-    private Properties properties;
+    private MailProperty properties;
 
     private Context() {
         users = new UserDao();
+        properties = new MailProperty();
     }
 
     public UserDao getUserDao() {
         return users;
     }
 
-    public String getUsername() {
-        return properties.getProperty("username");
-    }
-
-    public String getPassword() {
-        return properties.getProperty("password");
-    }
-
-    public Properties getProperties() {
+    public MailProperty getMailProperty() {
         return properties;
-    }
-
-    public void setProperties(Properties properties) {
-        this.properties = properties;
     }
 
     public static Context getInstance() {
         if (context == null) {
             context = new Context();
-            try {
-                new PropertyCommand().run(null);
-            } catch (Exception e) {
-                LOGGER.error(e.getMessage(), e);
-            }
         }
 
         return context;

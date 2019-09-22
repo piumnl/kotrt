@@ -25,7 +25,7 @@ import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeMessage;
 
 import org.kotrt.maillist.bean.User;
-import org.kotrt.maillist.context.Context;
+import org.kotrt.maillist.core.context.Context;
 import org.kotrt.maillist.util.MailUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

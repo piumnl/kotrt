@@ -1,4 +1,4 @@
-package org.kotrt.maillist.dao;
+package org.kotrt.maillist.core.dao;
 
 import java.util.HashMap;
 import java.util.HashSet;

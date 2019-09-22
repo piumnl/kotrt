@@ -26,7 +26,7 @@ import java.util.Scanner;
 import java.util.Set;
 
 import org.kotrt.maillist.bean.User;
-import org.kotrt.maillist.context.Context;
+import org.kotrt.maillist.core.context.Context;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
