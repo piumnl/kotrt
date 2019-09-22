@@ -21,12 +21,12 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.HashSet;
 import java.util.Scanner;
+import java.util.Set;
 
 import org.kotrt.maillist.bean.User;
-import org.kotrt.maillist.context.Context;
+import org.kotrt.maillist.core.context.Context;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -47,13 +47,13 @@ public class SubscribeUserCommand implements Command {
     public void run(String[] args) throws IOException {
         final Path path = Paths.get(SUBSCRIBE_FILE);
         if (Files.exists(path)) {
-            Map<String, User> users = readSubscribeFile(path);
+            Set<User> users = readSubscribeFile(path);
 
-            Context.getInstance().setUsers(users);
-
-            for (Map.Entry<String, User> entry : users.entrySet()) {
-                LOGGER.info("注册订阅用户 {} - {} 成功！", entry.getValue().getName(), entry.getValue().getEmail());
+            for (User user : users) {
+                Context.getInstance().getUserDao().addUser(user);
+                LOGGER.info("注册订阅用户 {} - {} 成功！", user.getName(), user.getEmail());
             }
+
         } else {
             Files.createFile(path);
             LOGGER.warn("缺少订阅者信息!");
@@ -65,14 +65,14 @@ public class SubscribeUserCommand implements Command {
      * @param path 订阅用户文件路径
      * @return 用户信息
      */
-    private Map<String, User> readSubscribeFile(Path path) {
+    private Set<User> readSubscribeFile(Path path) {
         LOGGER.info("读取订阅用户文件：{}", path.toAbsolutePath());
-        Map<String, User> result = new HashMap<>(0);
+        Set<User> result = new HashSet<>(0);
         try (final Scanner scanner = new Scanner(path, StandardCharsets.UTF_8.name())) {
             while (scanner.hasNextLine()) {
                 final String s = scanner.nextLine();
                 final User user = User.parse(s);
-                result.put(user.getEmail(), user);
+                result.add(user);
             }
         } catch (Exception e) {
             LOGGER.error(e.getMessage(), e);

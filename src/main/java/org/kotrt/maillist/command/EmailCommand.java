@@ -15,19 +15,20 @@
  */
 package org.kotrt.maillist.command;
 
-import org.kotrt.maillist.bean.User;
-import org.kotrt.maillist.context.Context;
-import org.kotrt.maillist.util.MailUtil;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import javax.mail.Address;
-import javax.mail.internet.InternetAddress;
-import javax.mail.internet.MimeMessage;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
+
+import javax.mail.Address;
+import javax.mail.internet.InternetAddress;
+import javax.mail.internet.MimeMessage;
+
+import org.kotrt.maillist.bean.User;
+import org.kotrt.maillist.core.context.Context;
+import org.kotrt.maillist.util.MailUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * 邮件的读取和发送
@@ -53,7 +54,7 @@ public class EmailCommand implements Command {
                 if (emails != null) {
                     LOGGER.info("新邮件条数:" + emails.size());
                     emails = filterEmail(emails);
-                    MailUtil.batchSend(emails, Context.getInstance().getUsers());
+                    MailUtil.batchSend(emails, Context.getInstance().getUserDao().getAllUser());
                 }
                 LOGGER.info("邮件收取结束.");
                 try {
@@ -83,11 +84,11 @@ public class EmailCommand implements Command {
                     User user = new User(registerOrNotEmail);
                     user.setName(registerOrNotUsername);
                     LOGGER.info("正在给用户: " + user.getName() + " 订阅, 他的邮件是: " + user.getEmail());
-                    Context.getInstance().addUser(user);
+                    Context.getInstance().getUserDao().addUser(user);
                     LOGGER.info("订阅成功");
                 } else {
                     LOGGER.info("正在给用户: " + registerOrNotUsername + " 取消订阅, 他的邮件是: " + registerOrNotEmail);
-                    Context.getInstance().deleteUser(registerOrNotEmail);
+                    Context.getInstance().getUserDao().deleteUser(registerOrNotEmail);
                     LOGGER.info("取消订阅成功");
                 }
 
@@ -102,7 +103,7 @@ public class EmailCommand implements Command {
 
     private static boolean isEmailFromUser(MimeMessage mimeMessage) {
         try {
-            Set<User> users = Context.getInstance().getUsers();
+            Set<User> users = Context.getInstance().getUserDao().getAllUser();
             Address[] from = mimeMessage.getFrom();
             for (User user : users) {
                 for (Address address : from) {

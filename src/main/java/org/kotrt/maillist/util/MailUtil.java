@@ -15,46 +15,45 @@
  */
 package org.kotrt.maillist.util;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
+
+import javax.mail.Address;
+import javax.mail.Authenticator;
+import javax.mail.Flags;
+import javax.mail.Folder;
+import javax.mail.Message;
+import javax.mail.MessagingException;
+import javax.mail.PasswordAuthentication;
+import javax.mail.Session;
+import javax.mail.Store;
+import javax.mail.Transport;
+import javax.mail.internet.InternetAddress;
+import javax.mail.internet.MimeMessage;
+
 import org.kotrt.maillist.bean.User;
-import org.kotrt.maillist.context.Context;
+import org.kotrt.maillist.core.MailProperty;
+import org.kotrt.maillist.core.context.Context;
 import org.kotrt.maillist.logger.JavaMailLogger;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import javax.mail.*;
-import javax.mail.internet.InternetAddress;
-import javax.mail.internet.MimeMessage;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Properties;
-import java.util.Set;
 
 public class MailUtil {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(MailUtil.class);
 
-    private static Properties props = new Properties();
-
     private static Session session;
 
     static {
-        props.setProperty("mail.transport.protocol", "smtp");
-        props.setProperty("mail.store.protocol", "imap");
-        props.setProperty("mail.smtp.host", "smtp.qq.com");
-        props.setProperty("mail.imap.host", "imap.qq.com");
-        props.setProperty("mail.smtp.auth", "true");
-        props.setProperty("mail.smtp.port", "465");
-        props.setProperty("mail.smtp.ssl.enable", "true");
-        props.setProperty("mail.smtp.socketFactory.port", "465");
-        props.setProperty("mail.smtp.socketFactory.fallback", "false");
-        props.setProperty("mail.smtp.socketFactory.class", "javax.net.ssl.SSLSocketFactory");
-        session = Session.getDefaultInstance(props);
-        Session session = Session.getInstance(props, new Authenticator() {
+        final MailProperty properties = Context.getInstance().getMailProperty();
+
+        session = Session.getDefaultInstance(properties.getProperties());
+        Session session = Session.getInstance(properties.getProperties(), new Authenticator() {
             @Override
             protected PasswordAuthentication getPasswordAuthentication() {
 
-                return new PasswordAuthentication(Context.getInstance().getUsername(),
-                        Context.getInstance().getPassword());
+                return new PasswordAuthentication(properties.getUsername(), properties.getPassword());
             }
         });
         session.setDebugOut(new JavaMailLogger(LoggerFactory.getLogger(MailUtil.class)));
@@ -67,7 +66,8 @@ public class MailUtil {
         Transport transport = null;
         try {
             transport = session.getTransport("smtp");
-            transport.connect(Context.getInstance().getUsername(), Context.getInstance().getPassword());
+            final MailProperty properties = Context.getInstance().getMailProperty();
+            transport.connect(properties.getUsername(), properties.getPassword());
             for (MimeMessage mimeMessage : messageList) {
                 LOGGER.info("开始发送邮件，邮件标题为: " + mimeMessage.getSubject());
 
@@ -89,7 +89,7 @@ public class MailUtil {
 
                 Address[] from = mimeMessage.getFrom();
                 InternetAddress address = (InternetAddress) from[0];
-                address.setAddress(Context.getInstance().getUsername());
+                address.setAddress(properties.getUsername());
 
                 mimeMessage.setFrom(address);
                 mimeMessage.saveChanges();
@@ -137,9 +137,11 @@ public class MailUtil {
     public static List<MimeMessage> getEmails() {
         Store store = null;
         Folder folder = null;
+        final MailProperty properties = Context.getInstance().getMailProperty();
+
         try {
-            store = session.getStore(props.getProperty("mail.store.protocol"));
-            store.connect(props.getProperty("mail.imap.host"), Context.getInstance().getUsername(), Context.getInstance().getPassword());
+            store = session.getStore(properties.getStoreProtocol());
+            store.connect(properties.getIMAPHost(), properties.getUsername(), properties.getPassword());
 
             folder = store.getFolder("inbox");
             folder.open(Folder.READ_WRITE);
