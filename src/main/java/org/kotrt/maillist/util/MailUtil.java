@@ -74,15 +74,24 @@ public class MailUtil {
                 StringBuilder userListStr = new StringBuilder();
                 for (User user : userList) {
                     LOGGER.info("   正在发送给接收人: " + user.getName());
-                    userListStr.append(user.getName());
-                    userListStr.append("<");
                     userListStr.append(user.getEmail());
-                    userListStr.append(">");
+                    userListStr.append(",");
                 }
+                userListStr.deleteCharAt(userListStr.length() - 1);
 
                 InternetAddress[] parse = InternetAddress.parse(userListStr.toString());
+                int index = 0;
+                for (User user : userList) {
+                    parse[index].setPersonal(user.getName());
+                    ++index;
+                }
                 mimeMessage.setRecipients(MimeMessage.RecipientType.TO, parse);
-                mimeMessage.setFrom(new InternetAddress(Context.getInstance().getUsername()));
+
+                Address[] from = mimeMessage.getFrom();
+                InternetAddress address = (InternetAddress) from[0];
+                address.setAddress(Context.getInstance().getUsername());
+
+                mimeMessage.setFrom(address);
                 mimeMessage.saveChanges();
                 transport.sendMessage(mimeMessage, mimeMessage.getAllRecipients());
                 LOGGER.info("   全部发送成功!");
