@@ -15,16 +15,10 @@
  */
 package org.kotrt.maillist.context;
 
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Objects;
 import java.util.Properties;
-import java.util.Set;
 
-import org.kotrt.maillist.bean.User;
 import org.kotrt.maillist.command.PropertyCommand;
-import org.kotrt.maillist.command.SubscribeUserCommand;
+import org.kotrt.maillist.dao.UserDao;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -41,43 +35,16 @@ public class Context {
 
     private static Context context;
 
-    private Map<String, User> users;
+    private UserDao users;
 
     private Properties properties;
 
     private Context() {
-        users = new HashMap<>();
+        users = new UserDao();
     }
 
-    public Set<User> getUsers() {
-        return new HashSet<>(users.values());
-    }
-
-    public User findUser(String email) {
-        return users.get(email);
-    }
-
-    public void addUser(User user) {
-        Objects.requireNonNull(user);
-        this.users.put(user.getEmail(), user);
-        saveUser();
-    }
-
-    public void deleteUser(String email) {
-        this.users.remove(email);
-        saveUser();
-    }
-
-    public void setUsers(Map<String, User> users) {
-        this.users = users;
-    }
-
-    private void saveUser() {
-        try {
-            new SubscribeUserCommand().writeSubscribeFile(getUsers());
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
+    public UserDao getUserDao() {
+        return users;
     }
 
     public String getUsername() {
