@@ -59,7 +59,7 @@ public class MailProperty {
         // dkim
         this.properties.setProperty("mail.smtp.dkim.signingdomain", "mail.kakjcloud.com");
         this.properties.setProperty("mail.smtp.dkim.selector", "*");
-        this.properties.setProperty("mail.smtp.dkim.privatekey", "C:\\ssl\\rsakey.pem");
+        this.properties.setProperty("mail.smtp.dkim.privatekey", "C:\\ssl\\private.key.der");
 
         try {
             final Properties properties = readProperties();
