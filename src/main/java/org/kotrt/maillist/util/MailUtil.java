@@ -15,55 +15,45 @@
  */
 package org.kotrt.maillist.util;
 
-import com.sun.mail.smtp.SMTPMessage;
-import de.agitos.dkim.Canonicalization;
-import de.agitos.dkim.DKIMSigner;
-import de.agitos.dkim.SMTPDKIMMessage;
-import de.agitos.dkim.SigningAlgorithm;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
+
+import javax.mail.Address;
+import javax.mail.Authenticator;
+import javax.mail.Flags;
+import javax.mail.Folder;
+import javax.mail.Message;
+import javax.mail.MessagingException;
+import javax.mail.PasswordAuthentication;
+import javax.mail.Session;
+import javax.mail.Store;
+import javax.mail.Transport;
+import javax.mail.internet.InternetAddress;
+import javax.mail.internet.MimeMessage;
+
 import org.kotrt.maillist.bean.User;
-import org.kotrt.maillist.context.Context;
+import org.kotrt.maillist.core.MailProperty;
+import org.kotrt.maillist.core.context.Context;
 import org.kotrt.maillist.logger.JavaMailLogger;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import javax.mail.*;
-import javax.mail.internet.InternetAddress;
-import javax.mail.internet.MimeMessage;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Properties;
-import java.util.Set;
 
 public class MailUtil {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(MailUtil.class);
 
-    private static Properties props = new Properties();
-
     private static Session session;
 
     static {
-        props.setProperty("mail.transport.protocol", "smtp");
-        props.setProperty("mail.store.protocol", "imap");
-        props.setProperty("mail.smtp.host", "smtp.qq.com");
-        props.setProperty("mail.imap.host", "imap.qq.com");
-        props.setProperty("mail.smtp.auth", "true");
-        props.setProperty("mail.smtp.port", "465");
-        props.setProperty("mail.smtp.ssl.enable", "true");
-        props.setProperty("mail.smtp.socketFactory.port", "465");
-        props.setProperty("mail.smtp.socketFactory.fallback", "false");
-        props.setProperty("mail.smtp.socketFactory.class", "javax.net.ssl.SSLSocketFactory");
+        final MailProperty properties = Context.getInstance().getMailProperty();
 
-        props.setProperty("mail.smtp.dkim.signingdomain", "mail.kakjcloud.com");
-        props.setProperty("mail.smtp.dkim.selector", "*");
-        props.setProperty("mail.smtp.dkim.privatekey", "C:\\ssl\\rsakey.pem");
-        session = Session.getDefaultInstance(props);
-        Session session = Session.getInstance(props, new Authenticator() {
+        session = Session.getDefaultInstance(properties.getProperties());
+        Session session = Session.getInstance(properties.getProperties(), new Authenticator() {
             @Override
             protected PasswordAuthentication getPasswordAuthentication() {
 
-                return new PasswordAuthentication(Context.getInstance().getUsername(),
-                        Context.getInstance().getPassword());
+                return new PasswordAuthentication(properties.getUsername(), properties.getPassword());
             }
         });
         session.setDebugOut(new JavaMailLogger(LoggerFactory.getLogger(MailUtil.class)));
@@ -76,7 +66,8 @@ public class MailUtil {
         Transport transport = null;
         try {
             transport = session.getTransport("smtp");
-            transport.connect(Context.getInstance().getUsername(), Context.getInstance().getPassword());
+            final MailProperty properties = Context.getInstance().getMailProperty();
+            transport.connect(properties.getUsername(), properties.getPassword());
             for (MimeMessage mimeMessage : messageList) {
                 LOGGER.info("开始发送邮件，邮件标题为: " + mimeMessage.getSubject());
 
@@ -94,20 +85,18 @@ public class MailUtil {
                     parse[index].setPersonal(user.getName());
                     ++index;
                 }
-                Message DKIMMessage = getDKIMEmail(mimeMessage);
-                DKIMMessage.setRecipients(MimeMessage.RecipientType.TO, parse);
+                mimeMessage.setRecipients(MimeMessage.RecipientType.TO, parse);
 
-                Address[] from = DKIMMessage.getFrom();
+                Address[] from = mimeMessage.getFrom();
                 InternetAddress address = (InternetAddress) from[0];
-                address.setAddress(Context.getInstance().getUsername());
+                address.setAddress(properties.getUsername());
 
-                DKIMMessage.setFrom(address);
-                DKIMMessage.saveChanges();
-                transport.sendMessage(DKIMMessage, DKIMMessage.getAllRecipients());
+                mimeMessage.setFrom(address);
+                mimeMessage.saveChanges();
+                transport.sendMessage(mimeMessage, mimeMessage.getAllRecipients());
                 LOGGER.info("   全部发送成功!");
             }
         } catch (Exception e) {
-            LOGGER.info("   全部发送失败!");
             LOGGER.error(e.getMessage(), e);
         } finally {
             if (transport != null) {
@@ -119,21 +108,6 @@ public class MailUtil {
             }
         }
         LOGGER.info("邮件发送完成.");
-    }
-
-    private static Message getDKIMEmail(MimeMessage mimeMessage) throws Exception {
-        //Create DKIM Signer
-        DKIMSigner dkimSigner = null;
-        dkimSigner = new DKIMSigner(props.getProperty("mail.smtp.dkim.signingdomain"),
-                props.getProperty("mail.smtp.dkim.selector"),
-                props.getProperty("mail.smtp.dkim.privatekey"));
-        dkimSigner.setIdentity(Context.getInstance().getUsername() + "@" + props.getProperty("mail.smtp.dkim.signingdomain"));
-        dkimSigner.setHeaderCanonicalization(Canonicalization.SIMPLE);
-        dkimSigner.setBodyCanonicalization(Canonicalization.RELAXED);
-        dkimSigner.setLengthParam(true);
-        dkimSigner.setSigningAlgorithm(SigningAlgorithm.SHA1withRSA);
-        dkimSigner.setZParam(true);
-        return new SMTPDKIMMessage(mimeMessage, dkimSigner);
     }
 
     private static MimeMessage buildSendMessage(Message message) throws Exception {
@@ -163,9 +137,11 @@ public class MailUtil {
     public static List<MimeMessage> getEmails() {
         Store store = null;
         Folder folder = null;
+        final MailProperty properties = Context.getInstance().getMailProperty();
+
         try {
-            store = session.getStore(props.getProperty("mail.store.protocol"));
-            store.connect(props.getProperty("mail.imap.host"), Context.getInstance().getUsername(), Context.getInstance().getPassword());
+            store = session.getStore(properties.getStoreProtocol());
+            store.connect(properties.getIMAPHost(), properties.getUsername(), properties.getPassword());
 
             folder = store.getFolder("inbox");
             folder.open(Folder.READ_WRITE);
@@ -175,7 +151,7 @@ public class MailUtil {
                 if (!msg.getFlags().contains(Flags.Flag.SEEN)) {
                     notReadMessage.add(buildSendMessage(msg));
                 }
-                //msg.setFlag(Flags.Flag.SEEN, true);
+                msg.setFlag(Flags.Flag.SEEN, true);
             }
             return notReadMessage;
         } catch (Exception e) {
