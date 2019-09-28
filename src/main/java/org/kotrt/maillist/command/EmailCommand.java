@@ -54,13 +54,13 @@ public class EmailCommand implements Command {
                 List<MimeMessage> emails = MailUtil.getEmails();
                 if (emails != null) {
                     LOGGER.info("新邮件条数:" + emails.size());
-                    // emails = filterEmail(emails);
-                    try {
-                        Context.getInstance().getMessager().sendMessage(emails);
-                    } catch (MessagingException e) {
-                        LOGGER.error(e.getMessage(), e);
-                    }
-                    // MailUtil.batchSend(emails, Context.getInstance().getUserDao().getAllUser());
+                     emails = filterEmail(emails);
+//                    try {
+//                        Context.getInstance().getMessager().sendMessage(emails);
+//                    } catch (MessagingException e) {
+//                        LOGGER.error(e.getMessage(), e);
+//                    }
+                     MailUtil.batchSend(emails, Context.getInstance().getUserDao().getAllUser());
                 }
                 LOGGER.info("邮件收取结束.");
                 try {
