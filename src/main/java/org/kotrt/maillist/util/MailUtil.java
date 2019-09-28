@@ -15,31 +15,19 @@
  */
 package org.kotrt.maillist.util;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
-
-import javax.mail.Address;
-import javax.mail.Flags;
-import javax.mail.Folder;
-import javax.mail.Message;
-import javax.mail.MessagingException;
-import javax.mail.Session;
-import javax.mail.Store;
-import javax.mail.Transport;
-import javax.mail.internet.InternetAddress;
-import javax.mail.internet.MimeMessage;
-
+import info.globalbus.dkim.DKIMSigner;
 import org.kotrt.maillist.bean.User;
 import org.kotrt.maillist.core.MailProperty;
 import org.kotrt.maillist.core.context.Context;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import de.agitos.dkim.Canonicalization;
-import de.agitos.dkim.DKIMSigner;
-import de.agitos.dkim.SMTPDKIMMessage;
-import de.agitos.dkim.SigningAlgorithm;
+import javax.mail.*;
+import javax.mail.internet.InternetAddress;
+import javax.mail.internet.MimeMessage;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
 
 public class MailUtil {
 
@@ -104,16 +92,9 @@ public class MailUtil {
 
     private static Message getDKIMEmail(MimeMessage mimeMessage) throws Exception {
         final MailProperty props = Context.getInstance().getMailProperty();
-
-        //Create DKIM Signer
         DKIMSigner dkimSigner = props.newDKIMSigner();
-        dkimSigner.setIdentity(props.getUsername() + "@" + props.getDKIMSigningdomain());
-        dkimSigner.setHeaderCanonicalization(Canonicalization.SIMPLE);
-        dkimSigner.setBodyCanonicalization(Canonicalization.RELAXED);
-        dkimSigner.setLengthParam(true);
-        dkimSigner.setSigningAlgorithm(SigningAlgorithm.SHA1withRSA);
-        dkimSigner.setZParam(true);
-        return new SMTPDKIMMessage(mimeMessage, dkimSigner);
+         dkimSigner.sign(mimeMessage);
+        return mimeMessage;
     }
 
     private static MimeMessage buildSendMessage(Message message) throws Exception {
