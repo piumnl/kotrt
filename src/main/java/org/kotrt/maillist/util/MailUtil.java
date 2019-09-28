@@ -15,31 +15,18 @@
  */
 package org.kotrt.maillist.util;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
-
-import javax.mail.Address;
-import javax.mail.Flags;
-import javax.mail.Folder;
-import javax.mail.Message;
-import javax.mail.MessagingException;
-import javax.mail.Session;
-import javax.mail.Store;
-import javax.mail.Transport;
-import javax.mail.internet.InternetAddress;
-import javax.mail.internet.MimeMessage;
-
 import org.kotrt.maillist.bean.User;
 import org.kotrt.maillist.core.MailProperty;
 import org.kotrt.maillist.core.context.Context;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import de.agitos.dkim.Canonicalization;
-import de.agitos.dkim.DKIMSigner;
-import de.agitos.dkim.SMTPDKIMMessage;
-import de.agitos.dkim.SigningAlgorithm;
+import javax.mail.*;
+import javax.mail.internet.InternetAddress;
+import javax.mail.internet.MimeMessage;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
 
 public class MailUtil {
 
@@ -75,16 +62,15 @@ public class MailUtil {
                     parse[index].setPersonal(user.getName());
                     ++index;
                 }
-                Message DKIMMessage = getDKIMEmail(mimeMessage);
-                DKIMMessage.setRecipients(MimeMessage.RecipientType.TO, parse);
+                mimeMessage.setRecipients(MimeMessage.RecipientType.TO, parse);
 
-                Address[] from = DKIMMessage.getFrom();
+                Address[] from = mimeMessage.getFrom();
                 InternetAddress address = (InternetAddress) from[0];
                 address.setAddress(properties.getUsername());
 
-                DKIMMessage.setFrom(address);
-                DKIMMessage.saveChanges();
-                transport.sendMessage(DKIMMessage, DKIMMessage.getAllRecipients());
+                mimeMessage.setFrom(address);
+                mimeMessage.saveChanges();
+                transport.sendMessage(mimeMessage, mimeMessage.getAllRecipients());
                 LOGGER.info("   全部发送成功!");
             }
         } catch (Exception e) {
@@ -100,20 +86,6 @@ public class MailUtil {
             }
         }
         LOGGER.info("邮件发送完成.");
-    }
-
-    private static Message getDKIMEmail(MimeMessage mimeMessage) throws Exception {
-        final MailProperty props = Context.getInstance().getMailProperty();
-
-        //Create DKIM Signer
-        DKIMSigner dkimSigner = props.newDKIMSigner();
-        dkimSigner.setIdentity(props.getUsername() + "@" + props.getDKIMSigningdomain());
-        dkimSigner.setHeaderCanonicalization(Canonicalization.SIMPLE);
-        dkimSigner.setBodyCanonicalization(Canonicalization.RELAXED);
-        dkimSigner.setLengthParam(true);
-        dkimSigner.setSigningAlgorithm(SigningAlgorithm.SHA1withRSA);
-        dkimSigner.setZParam(true);
-        return new SMTPDKIMMessage(mimeMessage, dkimSigner);
     }
 
     private static MimeMessage buildSendMessage(Message message) throws Exception {

@@ -15,21 +15,19 @@
  */
 package org.kotrt.maillist.command;
 
-import java.util.List;
-import java.util.Set;
-import java.util.concurrent.Executors;
-import java.util.stream.Collectors;
-
-import javax.mail.Address;
-import javax.mail.MessagingException;
-import javax.mail.internet.InternetAddress;
-import javax.mail.internet.MimeMessage;
-
 import org.kotrt.maillist.bean.User;
 import org.kotrt.maillist.core.context.Context;
 import org.kotrt.maillist.util.MailUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import javax.mail.Address;
+import javax.mail.internet.InternetAddress;
+import javax.mail.internet.MimeMessage;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.Executors;
+import java.util.stream.Collectors;
 
 /**
  * 邮件的读取和发送
@@ -55,14 +53,13 @@ public class EmailCommand implements Command {
                 if (emails != null) {
                     LOGGER.info("新邮件条数:" + emails.size());
                     emails = filterEmail(emails);
-//                    MailUtil.batchSend(emails, Context.getInstance().getUserDao().getAllUser());
+                    MailUtil.batchSend(emails, Context.getInstance().getUserDao().getAllUser());
                     // emails = filterEmail(emails);
 //                    try {
-//                        Context.getInstance().getMessager().sendMessage(emails);
+//                    Context.getInstance().getMessager().sendMessage(emails);
 //                    } catch (MessagingException e) {
 //                        LOGGER.error(e.getMessage(), e);
 //                    }
-                     MailUtil.batchSend(emails, Context.getInstance().getUserDao().getAllUser());
                 }
                 LOGGER.info("邮件收取结束.");
                 try {
