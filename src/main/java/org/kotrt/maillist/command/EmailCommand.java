@@ -21,10 +21,7 @@ import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 
 import javax.mail.Address;
-<<<<<<< HEAD
-=======
 import javax.mail.MessagingException;
->>>>>>> 3bfbd75faccf6636fab67e2ed636af72c3dfcad8
 import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeMessage;
 
