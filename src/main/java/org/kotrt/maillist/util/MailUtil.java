@@ -48,8 +48,8 @@ public class MailUtil {
     static {
         final MailProperty properties = Context.getInstance().getMailProperty();
 
-        session = Session.getDefaultInstance(properties.getProperties());
-        Session session = Session.getInstance(properties.getProperties(), new Authenticator() {
+        // session = Session.getDefaultInstance(properties.getProperties());
+        session = Session.getInstance(properties.getProperties(), new Authenticator() {
             @Override
             protected PasswordAuthentication getPasswordAuthentication() {
 
@@ -110,26 +110,26 @@ public class MailUtil {
         LOGGER.info("邮件发送完成.");
     }
 
-    private static MimeMessage buildSendMessage(Message message) throws Exception {
+    private static MimeMessage buildSendMessage(Message message) throws MessagingException {
         return new MimeMessage((MimeMessage) message);
     }
 
-    public static String getRegisterOrNotUsername(Message message) throws Exception {
+    public static String getRegisterOrNotUsername(Message message) throws MessagingException {
         String[] registerOrNotSubject = getRegisterOrNotSubject(message);
         return registerOrNotSubject[1];
     }
 
-    public static String getRegisterOrNotEmail(Message message) throws Exception {
+    public static String getRegisterOrNotEmail(Message message) throws MessagingException {
         String[] registerOrNotSubject = getRegisterOrNotSubject(message);
         return registerOrNotSubject[2];
     }
 
-    private static String[] getRegisterOrNotSubject(Message message) throws Exception {
+    private static String[] getRegisterOrNotSubject(Message message) throws MessagingException {
         String subject = message.getSubject();
         subject = subject.replace("[", "");
         String[] split = subject.split("]");
         if (split.length < 3) {
-            throw new Exception("注册或者取消注册的email标题格式异常!");
+            throw new RuntimeException("注册或者取消注册的email标题格式异常!");
         }
         return split;
     }
