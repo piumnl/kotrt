@@ -85,18 +85,20 @@ public class MailUtil {
                     parse[index].setPersonal(user.getName());
                     ++index;
                 }
-                mimeMessage.setRecipients(MimeMessage.RecipientType.TO, parse);
+                Message DKIMMessage = getDKIMEmail(mimeMessage);
+                DKIMMessage.setRecipients(MimeMessage.RecipientType.TO, parse);
 
-                Address[] from = mimeMessage.getFrom();
+                Address[] from = DKIMMessage.getFrom();
                 InternetAddress address = (InternetAddress) from[0];
                 address.setAddress(properties.getUsername());
 
-                mimeMessage.setFrom(address);
-                mimeMessage.saveChanges();
-                transport.sendMessage(mimeMessage, mimeMessage.getAllRecipients());
+                DKIMMessage.setFrom(address);
+                DKIMMessage.saveChanges();
+                transport.sendMessage(DKIMMessage, DKIMMessage.getAllRecipients());
                 LOGGER.info("   全部发送成功!");
             }
         } catch (Exception e) {
+            LOGGER.info("   全部发送失败!");
             LOGGER.error(e.getMessage(), e);
         } finally {
             if (transport != null) {
@@ -110,7 +112,22 @@ public class MailUtil {
         LOGGER.info("邮件发送完成.");
     }
 
-    private static MimeMessage buildSendMessage(Message message) throws MessagingException {
+    private static Message getDKIMEmail(MimeMessage mimeMessage) throws Exception {
+        //Create DKIM Signer
+        DKIMSigner dkimSigner = null;
+        dkimSigner = new DKIMSigner(props.getProperty("mail.smtp.dkim.signingdomain"),
+                props.getProperty("mail.smtp.dkim.selector"),
+                props.getProperty("mail.smtp.dkim.privatekey"));
+        dkimSigner.setIdentity(Context.getInstance().getUsername() + "@" + props.getProperty("mail.smtp.dkim.signingdomain"));
+        dkimSigner.setHeaderCanonicalization(Canonicalization.SIMPLE);
+        dkimSigner.setBodyCanonicalization(Canonicalization.RELAXED);
+        dkimSigner.setLengthParam(true);
+        dkimSigner.setSigningAlgorithm(SigningAlgorithm.SHA1withRSA);
+        dkimSigner.setZParam(true);
+        return new SMTPDKIMMessage(mimeMessage, dkimSigner);
+    }
+
+    private static MimeMessage buildSendMessage(Message message) throws Exception {
         return new MimeMessage((MimeMessage) message);
     }
 
@@ -151,7 +168,7 @@ public class MailUtil {
                 if (!msg.getFlags().contains(Flags.Flag.SEEN)) {
                     notReadMessage.add(buildSendMessage(msg));
                 }
-                msg.setFlag(Flags.Flag.SEEN, true);
+                //msg.setFlag(Flags.Flag.SEEN, true);
             }
             return notReadMessage;
         } catch (Exception e) {
