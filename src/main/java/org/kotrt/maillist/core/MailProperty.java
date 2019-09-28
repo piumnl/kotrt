@@ -19,10 +19,16 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.security.KeyFactory;
+import java.security.interfaces.RSAPrivateKey;
+import java.security.spec.PKCS8EncodedKeySpec;
+import java.util.Base64;
 import java.util.Properties;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import de.agitos.dkim.DKIMSigner;
 
 /**
  * Java Mail 的所有配置
@@ -53,8 +59,13 @@ public class MailProperty {
         this.properties.setProperty("mail.smtp.socketFactory.fallback", "false");
         this.properties.setProperty("mail.smtp.socketFactory.class", "javax.net.ssl.SSLSocketFactory");
 
+        // dkim
+        this.properties.setProperty("mail.smtp.dkim.signingdomain", "mail.kakjcloud.com");
+        this.properties.setProperty("mail.smtp.dkim.selector", "*");
+        this.properties.setProperty("mail.smtp.dkim.privatekey", "C:\\ssl\\rsakey.pem");
+
         try {
-            final Properties properties = readAccount();
+            final Properties properties = readProperties();
             for (String propertyName : properties.stringPropertyNames()) {
                 this.properties.setProperty(propertyName, properties.getProperty(propertyName));
             }
@@ -63,7 +74,7 @@ public class MailProperty {
         }
     }
 
-    private Properties readAccount() throws IOException {
+    private Properties readProperties() throws IOException {
         final Path path = Paths.get(PROPERTY_FILE);
         if (Files.exists(path)) {
             LOGGER.info("开始读取属性文件 {}", path.toAbsolutePath());
@@ -89,8 +100,23 @@ public class MailProperty {
         return properties.getProperty("mail.store.protocol");
     }
 
+    public String getDKIMSigningdomain() {
+        return properties.getProperty("mail.smtp.dkim.signingdomain");
+    }
+
     public String getIMAPHost() {
         return properties.getProperty("mail.imap.host");
+    }
+
+    public DKIMSigner newDKIMSigner() throws Exception {
+        KeyFactory var7 = KeyFactory.getInstance("RSA");
+        final String s = "";
+        PKCS8EncodedKeySpec var8 = new PKCS8EncodedKeySpec(Base64.getDecoder().decode(s));
+        RSAPrivateKey var9 = (RSAPrivateKey)var7.generatePrivate(var8);
+        return new DKIMSigner(properties.getProperty("mail.smtp.dkim.signingdomain"),
+                properties.getProperty("mail.smtp.dkim.selector"),
+                var9);
+                // properties.getProperty("mail.smtp.dkim.privatekey"));
     }
 
     public Properties getProperties() {

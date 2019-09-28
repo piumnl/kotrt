@@ -20,12 +20,10 @@ import java.util.List;
 import java.util.Set;
 
 import javax.mail.Address;
-import javax.mail.Authenticator;
 import javax.mail.Flags;
 import javax.mail.Folder;
 import javax.mail.Message;
 import javax.mail.MessagingException;
-import javax.mail.PasswordAuthentication;
 import javax.mail.Session;
 import javax.mail.Store;
 import javax.mail.Transport;
@@ -35,9 +33,13 @@ import javax.mail.internet.MimeMessage;
 import org.kotrt.maillist.bean.User;
 import org.kotrt.maillist.core.MailProperty;
 import org.kotrt.maillist.core.context.Context;
-import org.kotrt.maillist.logger.JavaMailLogger;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import de.agitos.dkim.Canonicalization;
+import de.agitos.dkim.DKIMSigner;
+import de.agitos.dkim.SMTPDKIMMessage;
+import de.agitos.dkim.SigningAlgorithm;
 
 public class MailUtil {
 
@@ -46,20 +48,8 @@ public class MailUtil {
     private static Session session;
 
     static {
-        final MailProperty properties = Context.getInstance().getMailProperty();
-
-        // session = Session.getDefaultInstance(properties.getProperties());
-        session = Session.getInstance(properties.getProperties(), new Authenticator() {
-            @Override
-            protected PasswordAuthentication getPasswordAuthentication() {
-
-                return new PasswordAuthentication(properties.getUsername(), properties.getPassword());
-            }
-        });
-        session.setDebugOut(new JavaMailLogger(LoggerFactory.getLogger(MailUtil.class)));
-        session.setDebug(false);
+        session = Context.getInstance().getSession();
     }
-
 
     public static void batchSend(List<MimeMessage> messageList, Set<User> userList) {
         LOGGER.info("开始发送邮件.");
@@ -113,12 +103,11 @@ public class MailUtil {
     }
 
     private static Message getDKIMEmail(MimeMessage mimeMessage) throws Exception {
+        final MailProperty props = Context.getInstance().getMailProperty();
+
         //Create DKIM Signer
-        DKIMSigner dkimSigner = null;
-        dkimSigner = new DKIMSigner(props.getProperty("mail.smtp.dkim.signingdomain"),
-                props.getProperty("mail.smtp.dkim.selector"),
-                props.getProperty("mail.smtp.dkim.privatekey"));
-        dkimSigner.setIdentity(Context.getInstance().getUsername() + "@" + props.getProperty("mail.smtp.dkim.signingdomain"));
+        DKIMSigner dkimSigner = props.newDKIMSigner();
+        dkimSigner.setIdentity(props.getUsername() + "@" + props.getDKIMSigningdomain());
         dkimSigner.setHeaderCanonicalization(Canonicalization.SIMPLE);
         dkimSigner.setBodyCanonicalization(Canonicalization.RELAXED);
         dkimSigner.setLengthParam(true);

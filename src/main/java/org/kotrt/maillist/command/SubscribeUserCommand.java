@@ -93,7 +93,7 @@ public class SubscribeUserCommand implements Command {
 
         StringBuilder builder = new StringBuilder();
         for (User user : collection) {
-            builder.append(user.getEmail()).append("    ").append(user.getName()).append(System.lineSeparator());
+            builder.append(user.getEmail().getAddress()).append("    ").append(user.getName()).append(System.lineSeparator());
         }
 
         Files.write(path, builder.toString().getBytes(StandardCharsets.UTF_8));
