@@ -15,8 +15,18 @@
  */
 package org.kotrt.maillist.core.context;
 
+import javax.mail.Authenticator;
+import javax.mail.PasswordAuthentication;
+import javax.mail.Session;
+import javax.mail.internet.AddressException;
+import javax.mail.internet.InternetAddress;
+
+import org.kotrt.maillist.core.DKIMMessager;
 import org.kotrt.maillist.core.MailProperty;
+import org.kotrt.maillist.core.Messager;
 import org.kotrt.maillist.core.dao.UserDao;
+import org.kotrt.maillist.logger.JavaMailLogger;
+import org.kotrt.maillist.util.MailUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -31,15 +41,38 @@ public class Context {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(Context.class);
 
+    private InternetAddress mime;
+
     private static Context context;
 
     private UserDao users;
 
     private MailProperty properties;
 
+    private Session session;
+
+    private Messager messager;
+
     private Context() {
         users = new UserDao();
         properties = new MailProperty();
+        try {
+            mime = new InternetAddress(properties.getUsername());
+        } catch (AddressException e) {
+            throw new RuntimeException(e);
+        }
+
+        session = Session.getInstance(properties.getProperties(), new Authenticator() {
+            @Override
+            protected PasswordAuthentication getPasswordAuthentication() {
+
+                return new PasswordAuthentication(properties.getUsername(), properties.getPassword());
+            }
+        });
+        session.setDebugOut(new JavaMailLogger(LoggerFactory.getLogger(MailUtil.class)));
+        session.setDebug(false);
+
+        messager = new DKIMMessager(properties, session);
     }
 
     public UserDao getUserDao() {
@@ -48,6 +81,18 @@ public class Context {
 
     public MailProperty getMailProperty() {
         return properties;
+    }
+
+    public InternetAddress getMime() {
+        return mime;
+    }
+
+    public Session getSession() {
+        return session;
+    }
+
+    public Messager getMessager() {
+        return messager;
     }
 
     public static Context getInstance() {

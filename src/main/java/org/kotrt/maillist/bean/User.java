@@ -15,6 +15,10 @@
  */
 package org.kotrt.maillist.bean;
 
+import java.io.UnsupportedEncodingException;
+
+import javax.mail.internet.InternetAddress;
+
 /**
  * @author kakj-go
  */
@@ -23,7 +27,7 @@ public class User {
     /**
      * 邮箱地址
      */
-    private String email;
+    private InternetAddress email;
 
     /**
      * 昵称
@@ -31,19 +35,23 @@ public class User {
     private String name;
 
     public User(String email){
-        this.email = email;
+        this(email, email);
     }
 
     public User(String email, String name) {
-        this.email = email;
         this.name = name;
+        try {
+            this.email = new InternetAddress(email, name, "UTF-8");
+        } catch (UnsupportedEncodingException e) {
+            throw new RuntimeException(e);
+        }
     }
 
-    public String getEmail() {
+    public InternetAddress getEmail() {
         return email;
     }
 
-    public void setEmail(String email) {
+    public void setEmail(InternetAddress email) {
         this.email = email;
     }
 

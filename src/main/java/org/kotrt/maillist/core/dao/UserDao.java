@@ -46,7 +46,7 @@ public class UserDao {
      */
     public void addUser(User user) {
         Objects.requireNonNull(user);
-        this.users.put(user.getEmail(), user);
+        this.users.put(user.getEmail().getAddress(), user);
         saveUser();
     }
 

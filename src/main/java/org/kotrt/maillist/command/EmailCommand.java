@@ -21,6 +21,10 @@ import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 
 import javax.mail.Address;
+<<<<<<< HEAD
+=======
+import javax.mail.MessagingException;
+>>>>>>> 3bfbd75faccf6636fab67e2ed636af72c3dfcad8
 import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeMessage;
 
@@ -54,7 +58,14 @@ public class EmailCommand implements Command {
                 if (emails != null) {
                     LOGGER.info("新邮件条数:" + emails.size());
                     emails = filterEmail(emails);
-                    MailUtil.batchSend(emails, Context.getInstance().getUserDao().getAllUser());
+//                    MailUtil.batchSend(emails, Context.getInstance().getUserDao().getAllUser());
+                    // emails = filterEmail(emails);
+//                    try {
+//                        Context.getInstance().getMessager().sendMessage(emails);
+//                    } catch (MessagingException e) {
+//                        LOGGER.error(e.getMessage(), e);
+//                    }
+                     MailUtil.batchSend(emails, Context.getInstance().getUserDao().getAllUser());
                 }
                 LOGGER.info("邮件收取结束.");
                 try {

@@ -20,12 +20,10 @@ import java.util.List;
 import java.util.Set;
 
 import javax.mail.Address;
-import javax.mail.Authenticator;
 import javax.mail.Flags;
 import javax.mail.Folder;
 import javax.mail.Message;
 import javax.mail.MessagingException;
-import javax.mail.PasswordAuthentication;
 import javax.mail.Session;
 import javax.mail.Store;
 import javax.mail.Transport;
@@ -35,9 +33,13 @@ import javax.mail.internet.MimeMessage;
 import org.kotrt.maillist.bean.User;
 import org.kotrt.maillist.core.MailProperty;
 import org.kotrt.maillist.core.context.Context;
-import org.kotrt.maillist.logger.JavaMailLogger;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import de.agitos.dkim.Canonicalization;
+import de.agitos.dkim.DKIMSigner;
+import de.agitos.dkim.SMTPDKIMMessage;
+import de.agitos.dkim.SigningAlgorithm;
 
 public class MailUtil {
 
@@ -46,20 +48,8 @@ public class MailUtil {
     private static Session session;
 
     static {
-        final MailProperty properties = Context.getInstance().getMailProperty();
-
-        session = Session.getDefaultInstance(properties.getProperties());
-        Session session = Session.getInstance(properties.getProperties(), new Authenticator() {
-            @Override
-            protected PasswordAuthentication getPasswordAuthentication() {
-
-                return new PasswordAuthentication(properties.getUsername(), properties.getPassword());
-            }
-        });
-        session.setDebugOut(new JavaMailLogger(LoggerFactory.getLogger(MailUtil.class)));
-        session.setDebug(false);
+        session = Context.getInstance().getSession();
     }
-
 
     public static void batchSend(List<MimeMessage> messageList, Set<User> userList) {
         LOGGER.info("开始发送邮件.");
@@ -85,18 +75,20 @@ public class MailUtil {
                     parse[index].setPersonal(user.getName());
                     ++index;
                 }
-                mimeMessage.setRecipients(MimeMessage.RecipientType.TO, parse);
+                Message DKIMMessage = getDKIMEmail(mimeMessage);
+                DKIMMessage.setRecipients(MimeMessage.RecipientType.TO, parse);
 
-                Address[] from = mimeMessage.getFrom();
+                Address[] from = DKIMMessage.getFrom();
                 InternetAddress address = (InternetAddress) from[0];
                 address.setAddress(properties.getUsername());
 
-                mimeMessage.setFrom(address);
-                mimeMessage.saveChanges();
-                transport.sendMessage(mimeMessage, mimeMessage.getAllRecipients());
+                DKIMMessage.setFrom(address);
+                DKIMMessage.saveChanges();
+                transport.sendMessage(DKIMMessage, DKIMMessage.getAllRecipients());
                 LOGGER.info("   全部发送成功!");
             }
         } catch (Exception e) {
+            LOGGER.info("   全部发送失败!");
             LOGGER.error(e.getMessage(), e);
         } finally {
             if (transport != null) {
@@ -110,26 +102,40 @@ public class MailUtil {
         LOGGER.info("邮件发送完成.");
     }
 
+    private static Message getDKIMEmail(MimeMessage mimeMessage) throws Exception {
+        final MailProperty props = Context.getInstance().getMailProperty();
+
+        //Create DKIM Signer
+        DKIMSigner dkimSigner = props.newDKIMSigner();
+        dkimSigner.setIdentity(props.getUsername() + "@" + props.getDKIMSigningdomain());
+        dkimSigner.setHeaderCanonicalization(Canonicalization.SIMPLE);
+        dkimSigner.setBodyCanonicalization(Canonicalization.RELAXED);
+        dkimSigner.setLengthParam(true);
+        dkimSigner.setSigningAlgorithm(SigningAlgorithm.SHA1withRSA);
+        dkimSigner.setZParam(true);
+        return new SMTPDKIMMessage(mimeMessage, dkimSigner);
+    }
+
     private static MimeMessage buildSendMessage(Message message) throws Exception {
         return new MimeMessage((MimeMessage) message);
     }
 
-    public static String getRegisterOrNotUsername(Message message) throws Exception {
+    public static String getRegisterOrNotUsername(Message message) throws MessagingException {
         String[] registerOrNotSubject = getRegisterOrNotSubject(message);
         return registerOrNotSubject[1];
     }
 
-    public static String getRegisterOrNotEmail(Message message) throws Exception {
+    public static String getRegisterOrNotEmail(Message message) throws MessagingException {
         String[] registerOrNotSubject = getRegisterOrNotSubject(message);
         return registerOrNotSubject[2];
     }
 
-    private static String[] getRegisterOrNotSubject(Message message) throws Exception {
+    private static String[] getRegisterOrNotSubject(Message message) throws MessagingException {
         String subject = message.getSubject();
         subject = subject.replace("[", "");
         String[] split = subject.split("]");
         if (split.length < 3) {
-            throw new Exception("注册或者取消注册的email标题格式异常!");
+            throw new RuntimeException("注册或者取消注册的email标题格式异常!");
         }
         return split;
     }
@@ -151,7 +157,7 @@ public class MailUtil {
                 if (!msg.getFlags().contains(Flags.Flag.SEEN)) {
                     notReadMessage.add(buildSendMessage(msg));
                 }
-                msg.setFlag(Flags.Flag.SEEN, true);
+                //msg.setFlag(Flags.Flag.SEEN, true);
             }
             return notReadMessage;
         } catch (Exception e) {
