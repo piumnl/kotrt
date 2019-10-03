@@ -25,6 +25,7 @@ import java.util.HashSet;
 import java.util.Scanner;
 import java.util.Set;
 
+import org.apache.commons.lang3.StringUtils;
 import org.kotrt.maillist.bean.User;
 import org.kotrt.maillist.core.context.Context;
 import org.slf4j.Logger;
@@ -71,6 +72,10 @@ public class SubscribeUserCommand implements Command {
         try (final Scanner scanner = new Scanner(path, StandardCharsets.UTF_8.name())) {
             while (scanner.hasNextLine()) {
                 final String s = scanner.nextLine();
+                if (StringUtils.isBlank(s)) {
+                    continue;
+                }
+
                 final User user = User.parse(s);
                 result.add(user);
             }
