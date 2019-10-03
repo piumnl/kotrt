@@ -18,16 +18,17 @@ package org.kotrt.maillist.command;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import javax.mail.Address;
+import javax.mail.Message;
 import javax.mail.MessagingException;
 import javax.mail.internet.InternetAddress;
-import javax.mail.internet.MimeMessage;
 
 import org.kotrt.maillist.bean.User;
+import org.kotrt.maillist.core.Messager;
 import org.kotrt.maillist.core.context.Context;
-import org.kotrt.maillist.util.MailUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -42,85 +43,91 @@ public class EmailCommand implements Command {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(EmailCommand.class);
 
+    private static final String SUBSCRIBE_EMAIL = "[订阅邮件]";
+
+    private static final String UNSUBSCRIBE_EMAIL = "[取消订阅邮件]";
+
+    @SuppressWarnings("AlibabaThreadPoolCreation")
     @Override
     public void run(String[] args) throws Exception {
-        Executors.newSingleThreadExecutor().execute(getTask());
+        Executors.newSingleThreadScheduledExecutor()
+                 .scheduleAtFixedRate(getTask(), 0L, 5L, TimeUnit.MINUTES);
     }
 
     private Runnable getTask() {
         return () -> {
-            while (true) {
-                LOGGER.info("开始收取邮件.");
-                List<MimeMessage> emails = MailUtil.getEmails();
-                if (emails != null) {
-                    LOGGER.info("新邮件条数:" + emails.size());
-                     emails = filterEmail(emails);
-//                    try {
-//                        Context.getInstance().getMessager().sendMessage(emails);
-//                    } catch (MessagingException e) {
-//                        LOGGER.error(e.getMessage(), e);
-//                    }
-                     MailUtil.batchSend(emails, Context.getInstance().getUserDao().getAllUser());
-                }
-                LOGGER.info("邮件收取结束.");
-                try {
-                    Thread.sleep(5 * 1000 * 60);
-                } catch (Exception e) {
-                    LOGGER.error(e.getMessage(), e);
-                }
-            }
+            LOGGER.debug("开始收取邮件.");
+
+            final Context instance = Context.getInstance();
+            final Messager messager = instance.getMessager();
+
+            List<Message> emails = messager.getMessages();
+            LOGGER.debug("总新邮件条数: {}", emails.size());
+            emails = filterEmail(emails);
+            LOGGER.debug("过滤邮件条数： {}", emails.size());
+            messager.sendMessage(emails);
+
+            instance.closeFolder();
+
+            LOGGER.info("结束收取邮件...");
         };
     }
 
-    private static List<MimeMessage> filterEmail(List<MimeMessage> emails) {
+    private List<Message> filterEmail(List<Message> emails) {
         return emails.stream()
-                .filter(EmailCommand::isOtherEmailToFilterAndDoSomething)
-                .filter(EmailCommand::isEmailFromUser).
-                        collect(Collectors.toList());
+                     .filter(this::isOtherEmailToFilterAndDoSomething)
+                     .filter(this::isEmailFromUser)
+                     .collect(Collectors.toList());
     }
 
-    private static boolean isOtherEmailToFilterAndDoSomething(MimeMessage mimeMessage) {
+    private boolean isOtherEmailToFilterAndDoSomething(Message message) {
         try {
-            String subject = mimeMessage.getSubject();
-            if (subject.startsWith("[订阅邮件]") || subject.startsWith("[取消订阅邮件]")) {
-
-                String registerOrNotUsername = MailUtil.getRegisterOrNotUsername(mimeMessage);
-                String registerOrNotEmail = MailUtil.getRegisterOrNotEmail(mimeMessage);
-                if (subject.startsWith("[订阅邮件]")) {
-                    User user = new User(registerOrNotEmail);
-                    user.setName(registerOrNotUsername);
-                    LOGGER.info("正在给用户: " + user.getName() + " 订阅, 他的邮件是: " + user.getEmail());
-                    Context.getInstance().getUserDao().addUser(user);
-                    LOGGER.info("订阅成功");
-                } else {
-                    LOGGER.info("正在给用户: " + registerOrNotUsername + " 取消订阅, 他的邮件是: " + registerOrNotEmail);
-                    Context.getInstance().getUserDao().deleteUser(registerOrNotEmail);
-                    LOGGER.info("取消订阅成功");
+            String subject = message.getSubject();
+            final Address[] from = message.getFrom();
+            InternetAddress fromUserAddress = (InternetAddress) from[0];
+            final String address = fromUserAddress.getAddress();
+            if (subject.startsWith(SUBSCRIBE_EMAIL)) {
+                User user = new User(address);
+                if (subject.length() > SUBSCRIBE_EMAIL.length()) {
+                    user.setName(subject.substring(subject.indexOf("]") + 1));
                 }
 
+                Context.getInstance().getUserDao().addUser(user);
+                LOGGER.info("新增用户 {}-{} 订阅", user.getName(), user.getEmail());
                 return false;
+            } else if (subject.startsWith(UNSUBSCRIBE_EMAIL)) {
+                final User user = Context.getInstance().getUserDao().findUser(address);
+                if (user == null) {
+                    return false;
+                }
+
+                Context.getInstance().getUserDao().deleteUser(address);
+                LOGGER.info("用户 {}-{} 取消订阅", user.getName(), user.getEmail());
+                return false;
+            } else {
+                return true;
             }
-            return true;
         } catch (Exception e) {
             LOGGER.error(e.getMessage(), e);
         }
         return true;
     }
 
-    private static boolean isEmailFromUser(MimeMessage mimeMessage) {
+    private boolean isEmailFromUser(Message message) {
+        Set<User> users = Context.getInstance().getUserDao().getAllUser();
         try {
-            Set<User> users = Context.getInstance().getUserDao().getAllUser();
-            Address[] from = mimeMessage.getFrom();
+            Address[] from = message.getFrom();
+
             for (User user : users) {
                 for (Address address : from) {
-                    if (((InternetAddress) address).getAddress().equals(user.getEmail())) {
+                    if (((InternetAddress) address).getAddress().equals(user.getEmail().getAddress())) {
                         return true;
                     }
                 }
             }
-            LOGGER.info("邮件标题为: " + mimeMessage.getSubject() + " 被过滤, 邮件来源: " + ((InternetAddress) from[0]).getAddress());
-            return false;
-        } catch (Exception e) {
+
+            LOGGER.info("邮件 【{}】来自非订阅用户 {} ，不做转发处理", message.getSubject(), ((InternetAddress) from[0]).getAddress());
+        } catch (MessagingException e) {
             LOGGER.error(e.getMessage(), e);
         }
         return false;
