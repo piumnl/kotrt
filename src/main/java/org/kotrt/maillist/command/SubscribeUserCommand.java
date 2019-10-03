@@ -51,7 +51,7 @@ public class SubscribeUserCommand implements Command {
 
             for (User user : users) {
                 Context.getInstance().getUserDao().addUser(user);
-                LOGGER.info("注册订阅用户 {} - {} 成功！", user.getName(), user.getEmail());
+                LOGGER.info("注册订阅用户 {} - {} 成功！", user.getName(), user.getEmail().getAddress());
             }
 
         } else {
