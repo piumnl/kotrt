@@ -67,7 +67,7 @@ public class EmailCommand implements Command {
             LOGGER.debug("过滤邮件条数： {}", emails.size());
             messager.sendMessage(emails);
 
-            instance.closeFolder();
+            instance.closeBox();
 
             LOGGER.info("结束收取邮件...");
         };

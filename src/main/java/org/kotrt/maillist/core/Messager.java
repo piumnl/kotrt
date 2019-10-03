@@ -117,7 +117,8 @@ public class Messager {
         } catch (Exception e) {
             throw new RuntimeException(e);
         } finally {
-            close(service);
+            // 不在此处处理
+            // close(service);
         }
     }
 
@@ -154,16 +155,6 @@ public class Messager {
         return allUser.stream()
                       .map(User::getEmail)
                       .toArray(Address[]::new);
-    }
-
-    private void close(Service service) {
-        try {
-            if (service != null) {
-                service.close();
-            }
-        } catch (MessagingException e) {
-            throw new RuntimeException(e);
-        }
     }
 
     protected Message newMessage(Session session) {

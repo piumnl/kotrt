@@ -20,6 +20,8 @@ import javax.mail.Folder;
 import javax.mail.MessagingException;
 import javax.mail.PasswordAuthentication;
 import javax.mail.Session;
+import javax.mail.Store;
+import javax.mail.Transport;
 import javax.mail.internet.AddressException;
 import javax.mail.internet.InternetAddress;
 
@@ -28,7 +30,6 @@ import org.kotrt.maillist.core.Messager;
 import org.kotrt.maillist.core.dao.UserDao;
 import org.kotrt.maillist.logger.JavaMailLogger;
 import org.kotrt.maillist.util.MailUtil;
-import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
@@ -39,8 +40,6 @@ import org.slf4j.LoggerFactory;
  * @since on 2019-09-21.
  */
 public class Context {
-
-    private static final Logger LOGGER = LoggerFactory.getLogger(Context.class);
 
     private InternetAddress mime;
 
@@ -55,6 +54,10 @@ public class Context {
     private Messager messager;
 
     private Folder folder;
+
+    private Store store;
+
+    private Transport transport;
 
     private Context() {
         users = new UserDao();
@@ -101,10 +104,34 @@ public class Context {
         this.folder = folder;
     }
 
-    public void closeFolder() {
+    public void setStore(Store store) {
+        this.store = store;
+    }
+
+    public void setTransport(Transport transport) {
+        this.transport = transport;
+    }
+
+    public void closeBox() {
         if (folder != null) {
             try {
                 folder.close(true);
+            } catch (MessagingException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        if (store != null) {
+            try {
+                store.close();
+            } catch (MessagingException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        if (transport != null) {
+            try {
+                transport.close();
             } catch (MessagingException e) {
                 throw new RuntimeException(e);
             }
