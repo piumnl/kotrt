@@ -51,7 +51,7 @@ public class UserDao {
     }
 
     /**
-     * 删除用户
+     * 通过 email地址检索并删除用户
      * @param email 用户信息
      */
     public void deleteUser(String email) {
