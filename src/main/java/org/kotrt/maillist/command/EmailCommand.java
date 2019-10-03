@@ -113,7 +113,7 @@ public class EmailCommand implements Command {
         } catch (Exception e) {
             LOGGER.error(e.getMessage(), e);
         }
-        return true;
+        return false;
     }
 
     private boolean isEmailFromUser(Message message) {
