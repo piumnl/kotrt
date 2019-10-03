@@ -45,7 +45,7 @@ public class EmailCommand implements Command {
 
     private static final String SUBSCRIBE_EMAIL = "[订阅邮件]";
 
-    private static final String UNSUBSCRIBE_EMAIL = "[取消订阅邮件]";
+    private static final String UNSUBSCRIBE_EMAIL = "[取消订阅]";
 
     @SuppressWarnings("AlibabaThreadPoolCreation")
     @Override
@@ -62,9 +62,12 @@ public class EmailCommand implements Command {
             final Messager messager = instance.getMessager();
 
             List<Message> emails = messager.getMessages();
-            LOGGER.debug("总新邮件条数: {}", emails.size());
+            final int size = emails.size();
+            LOGGER.debug("总新邮件条数: {}", size);
+
             emails = filterEmail(emails);
-            LOGGER.debug("过滤邮件条数： {}", emails.size());
+            LOGGER.debug("过滤邮件条数： {}", size - emails.size());
+
             messager.sendMessage(emails);
 
             instance.closeBox();
@@ -93,7 +96,7 @@ public class EmailCommand implements Command {
                 }
 
                 Context.getInstance().getUserDao().addUser(user);
-                LOGGER.info("新增用户 {}-{} 订阅", user.getName(), user.getEmail());
+                LOGGER.info("新增用户 {}-{} 订阅", user.getName(), user.getEmail().getAddress());
                 return false;
             } else if (subject.startsWith(UNSUBSCRIBE_EMAIL)) {
                 final User user = Context.getInstance().getUserDao().findUser(address);
@@ -102,7 +105,7 @@ public class EmailCommand implements Command {
                 }
 
                 Context.getInstance().getUserDao().deleteUser(address);
-                LOGGER.info("用户 {}-{} 取消订阅", user.getName(), user.getEmail());
+                LOGGER.info("用户 {}-{} 取消订阅", user.getName(), user.getEmail().getAddress());
                 return false;
             } else {
                 return true;
