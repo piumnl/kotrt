@@ -16,12 +16,13 @@
 package org.kotrt.maillist.core.context;
 
 import javax.mail.Authenticator;
+import javax.mail.Folder;
+import javax.mail.MessagingException;
 import javax.mail.PasswordAuthentication;
 import javax.mail.Session;
 import javax.mail.internet.AddressException;
 import javax.mail.internet.InternetAddress;
 
-import org.kotrt.maillist.core.DKIMMessager;
 import org.kotrt.maillist.core.MailProperty;
 import org.kotrt.maillist.core.Messager;
 import org.kotrt.maillist.core.dao.UserDao;
@@ -53,6 +54,8 @@ public class Context {
 
     private Messager messager;
 
+    private Folder folder;
+
     private Context() {
         users = new UserDao();
         properties = new MailProperty();
@@ -65,14 +68,13 @@ public class Context {
         session = Session.getInstance(properties.getProperties(), new Authenticator() {
             @Override
             protected PasswordAuthentication getPasswordAuthentication() {
-
                 return new PasswordAuthentication(properties.getUsername(), properties.getPassword());
             }
         });
         session.setDebugOut(new JavaMailLogger(LoggerFactory.getLogger(MailUtil.class)));
         session.setDebug(false);
 
-        messager = new DKIMMessager(properties, session);
+        messager = new Messager(properties, session);
     }
 
     public UserDao getUserDao() {
@@ -93,6 +95,20 @@ public class Context {
 
     public Messager getMessager() {
         return messager;
+    }
+
+    public void setFolder(Folder folder) {
+        this.folder = folder;
+    }
+
+    public void closeFolder() {
+        if (folder != null) {
+            try {
+                folder.close(true);
+            } catch (MessagingException e) {
+                throw new RuntimeException(e);
+            }
+        }
     }
 
     public static Context getInstance() {
