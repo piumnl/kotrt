@@ -15,17 +15,20 @@
  */
 package org.kotrt.maillist.core;
 
-import info.globalbus.dkim.DKIMSigner;
-import org.apache.commons.io.IOUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.security.KeyFactory;
+import java.security.interfaces.RSAPrivateKey;
+import java.security.spec.PKCS8EncodedKeySpec;
+import java.util.Base64;
 import java.util.Properties;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import info.globalbus.dkim.DKIMSigner;
 
 /**
  * Java Mail 的所有配置
@@ -57,9 +60,9 @@ public class MailProperty {
         this.properties.setProperty("mail.smtp.socketFactory.class", "javax.net.ssl.SSLSocketFactory");
 
         // dkim
-        this.properties.setProperty("mail.smtp.dkim.signingdomain", "mail.kakjcloud.com");
+        this.properties.setProperty("mail.smtp.dkim.signingdomain", "");
         this.properties.setProperty("mail.smtp.dkim.selector", "*");
-        this.properties.setProperty("mail.smtp.dkim.privatekey", "C:\\ssl\\private.key.der");
+        this.properties.setProperty("mail.smtp.dkim.privatekey", "");
 
         try {
             final Properties properties = readProperties();
@@ -105,11 +108,23 @@ public class MailProperty {
         return properties.getProperty("mail.imap.host");
     }
 
+    // public DKIMSigner newDKIMSigner() throws Exception {
+    //     FileInputStream fileInputStream = new FileInputStream(properties.getProperty("mail.smtp.dkim.privatekey"));
+    //     byte[] rawKey = IOUtils.toByteArray(fileInputStream);
+    //     return new DKIMSigner(properties.getProperty("mail.smtp.dkim.signingdomain"),
+    //             properties.getProperty("mail.smtp.dkim.selector"), rawKey);
+    // }
+
+    @Deprecated
     public DKIMSigner newDKIMSigner() throws Exception {
-        FileInputStream fileInputStream = new FileInputStream(properties.getProperty("mail.smtp.dkim.privatekey"));
-        byte[] rawKey = IOUtils.toByteArray(fileInputStream);
+        KeyFactory var7 = KeyFactory.getInstance("RSA");
+        final String s = Files.readAllLines(Paths.get(properties.getProperty("mail.smtp.dkim.privatekey"))).get(0);
+        PKCS8EncodedKeySpec var8 = new PKCS8EncodedKeySpec(Base64.getDecoder().decode(s));
+        RSAPrivateKey var9 = (RSAPrivateKey)var7.generatePrivate(var8);
         return new DKIMSigner(properties.getProperty("mail.smtp.dkim.signingdomain"),
-                properties.getProperty("mail.smtp.dkim.selector"), rawKey);
+                properties.getProperty("mail.smtp.dkim.selector"),
+                var9);
+        // properties.getProperty("mail.smtp.dkim.privatekey"));
     }
 
     public Properties getProperties() {
