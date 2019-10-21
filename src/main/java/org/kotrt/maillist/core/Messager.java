@@ -1,6 +1,7 @@
 package org.kotrt.maillist.core;
 
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
@@ -20,6 +21,7 @@ import javax.mail.Session;
 import javax.mail.Store;
 import javax.mail.Transport;
 import javax.mail.internet.MimeMessage;
+import javax.mail.internet.MimeUtility;
 import javax.mail.search.FlagTerm;
 
 import org.kotrt.maillist.bean.User;
@@ -156,9 +158,15 @@ public class Messager {
         try {
             message.setFrom(sender);
             message.setRecipients(MimeMessage.RecipientType.TO, recipients);
-            message.setSubject(subject);
+            final String content;
+            try {
+                content = MimeUtility.encodeText(subject, "utf8", "B");
+            } catch (UnsupportedEncodingException e) {
+                throw new RuntimeException(e);
+            }
+            message.setSubject(content);
             message.setSentDate(new Date());
-            message.setContent(context, "text/html;charset=gbk");
+            message.setContent(context, "text/html;charset=utf-8");
 
             message.saveChanges();
         } catch (MessagingException e) {
