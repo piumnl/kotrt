@@ -68,7 +68,9 @@ public class EmailCommand implements Command {
             emails = filterEmail(emails);
             LOGGER.debug("过滤邮件条数： {}", size - emails.size());
 
-            messager.sendMessage(emails);
+            if (emails.size() > 0) {
+                messager.resendMessage(emails);
+            }
 
             instance.closeBox();
 
@@ -90,18 +92,49 @@ public class EmailCommand implements Command {
             InternetAddress fromUserAddress = (InternetAddress) from[0];
             final String address = fromUserAddress.getAddress();
             if (subject.startsWith(SUBSCRIBE_EMAIL)) {
-                User user = new User(address);
-                if (subject.length() > SUBSCRIBE_EMAIL.length()) {
-                    user.setName(subject.substring(subject.indexOf("]") + 1));
+                final User find = Context.getInstance().getUserDao().findUser(address);
+                if (find != null) {
+                    return false;
                 }
 
-                Context.getInstance().getUserDao().addUser(user);
+                // 设置为已读
+                message.getContent();
+
+                User user = new User(address, address);
+                if (subject.length() > SUBSCRIBE_EMAIL.length()) {
+                    user.setName(subject.substring(subject.indexOf("]") + 1).trim());
+                }
+
+                final User realUser = new User(address, user.getName());
+                Context.getInstance().getUserDao().addUser(realUser);
                 LOGGER.info("新增用户 {}-{} 订阅", user.getName(), user.getEmail().getAddress());
+
+                try {
+                    final Messager messager = Context.getInstance().getMessager();
+                    final Message thanksForSub = messager.buildMessage(Context.getInstance().getMime(), new Address[]{realUser.getEmail()}, "订阅成功", "感谢您的订阅！如果您打算取消订阅，请发送 " + UNSUBSCRIBE_EMAIL + "开头的主题的邮件。");
+                    messager.sendMessage(thanksForSub);
+                    LOGGER.info("发送欢迎 {} - {} 邮件成功", user.getName(), address);
+                } catch (Exception e) {
+                    LOGGER.error(e.getMessage(), e);
+                }
+
                 return false;
             } else if (subject.startsWith(UNSUBSCRIBE_EMAIL)) {
                 final User user = Context.getInstance().getUserDao().findUser(address);
                 if (user == null) {
                     return false;
+                }
+
+                // 设置为已读
+                message.getContent();
+
+                try {
+                    final Messager messager = Context.getInstance().getMessager();
+                    final Message thanksForSub = messager.buildMessage(Context.getInstance().getMime(), new Address[]{user.getEmail()}, "取消订阅成功", "您已取消订阅成功，不再收到来自此处的邮件！如果您想再次订阅，请发送 " + SUBSCRIBE_EMAIL + "开头的主题的邮件。");
+                    messager.sendMessage(thanksForSub);
+                    LOGGER.info("发送 {} - {} 取消邮件订阅的邮件成功", user.getName(), address);
+                } catch (Exception e) {
+                    LOGGER.error(e.getMessage(), e);
                 }
 
                 Context.getInstance().getUserDao().deleteUser(address);
