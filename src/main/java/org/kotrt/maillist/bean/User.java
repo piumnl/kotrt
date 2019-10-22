@@ -65,7 +65,11 @@ public class User {
 
     public static User parse(String line) {
         final String[] info = line.split("\\s+");
-        return new User(info[0], info[1]);
+        if (info.length == 2) {
+            return new User(info[0], info[1]);
+        } else {
+            return new User(line.trim(), line.trim());
+        }
     }
 
     @Override

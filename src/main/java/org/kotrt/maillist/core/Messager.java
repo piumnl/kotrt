@@ -46,7 +46,7 @@ public class Messager {
     }
 
     public List<Message> getMessages() {
-        return handle(store(), store -> {
+        return handleBox(store(), store -> {
             try {
                 Folder folder = store.getFolder("inbox");
                 folder.open(Folder.READ_WRITE);
@@ -78,14 +78,33 @@ public class Messager {
      * 转发邮件
      * @param messages 原邮件信息
      */
-    public void sendMessage(List<? extends Message> messages) {
-        handle(transport(), service -> {
+    public void resendMessage(List<? extends Message> messages) {
+        handleBox(transport(), service -> {
             try {
                 LOGGER.debug("开始转发邮件：");
                 for (Message message : messages) {
                     service.sendMessage(buildMessage(message), getAllRecipientUser());
                     LOGGER.debug("    邮件【{}】", message.getSubject());
                 }
+            } catch (MessagingException e) {
+                throw new RuntimeException(e);
+            }
+
+            // 不需要返回值
+            return null;
+        });
+    }
+
+    /**
+     * 发送邮件
+     * @param message 邮件信息
+     */
+    public void sendMessage(Message message) {
+        handleBox(transport(), service -> {
+            try {
+                LOGGER.debug("开始发送邮件：");
+                service.sendMessage(message, message.getRecipients(Message.RecipientType.TO));
+                LOGGER.debug("    邮件【{}】", message.getSubject());
             } catch (MessagingException e) {
                 throw new RuntimeException(e);
             }
@@ -105,7 +124,15 @@ public class Messager {
         };
     }
 
-    private <T extends Service, R> R handle(Supplier<T> supplier, Function<T, R> fun) {
+    /**
+     * 连接邮箱的相关操作
+     * @param supplier 获取操作对象
+     * @param fun 连接邮箱成功后的操作
+     * @param <T> 操作对象类型
+     * @param <R> fun 的操作结果
+     * @return fun 的操作结果
+     */
+    private <T extends Service, R> R handleBox(Supplier<T> supplier, Function<T, R> fun) {
         T service = null;
         try {
             // 获取操作对象
@@ -122,7 +149,27 @@ public class Messager {
         }
     }
 
+    public Message buildMessage(Address sender, Address[] recipients, String subject, String context) {
+        LOGGER.info("构建模板邮件内容");
+        final Message message = newMessage(session);
+
+        try {
+            message.setFrom(sender);
+            message.setRecipients(MimeMessage.RecipientType.TO, recipients);
+            message.setSubject(subject);
+            message.setSentDate(new Date());
+            message.setContent(context, "text/html;charset=gbk");
+
+            message.saveChanges();
+        } catch (MessagingException e) {
+            LOGGER.error(e.getMessage(), e);
+        }
+
+        return message;
+    }
+
     private Message buildMessage(Message originMsg) throws MessagingException {
+        LOGGER.info("构建转发邮件内容");
         final Message message = newMessage(session);
 
         // from
