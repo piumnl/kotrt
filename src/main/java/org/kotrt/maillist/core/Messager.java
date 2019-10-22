@@ -2,6 +2,7 @@ package org.kotrt.maillist.core;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
@@ -169,6 +170,8 @@ public class Messager {
             message.setContent(context, "text/html;charset=utf-8");
 
             message.saveChanges();
+            System.setProperty("mail.mime.charset", "UTF-8");
+            message.setHeader("Content-Type", "text/html; charset=\"utf-8\"");
         } catch (MessagingException e) {
             LOGGER.error(e.getMessage(), e);
         }
@@ -190,15 +193,22 @@ public class Messager {
 
 
         // 设置邮件主题
-        final String content;
+        String[] subjects = originMsg.getHeader("Subject");
+        String content = "";
         try {
-            content = MimeUtility.encodeText(originMsg.getSubject(), "utf8", "B");
+            for (String str : subjects) {
+                String text = new String(str.getBytes(StandardCharsets.ISO_8859_1), StandardCharsets.UTF_8);
+                content = MimeUtility.encodeText(MimeUtility.decodeText(text), "utf8", "B");
+            }
         } catch (UnsupportedEncodingException e) {
             throw new RuntimeException(e);
         }
+
         message.setSubject(content);
         // 设置邮件的发送时间,默认立即发送
         message.setSentDate(new Date());
+        System.setProperty("mail.mime.charset", "UTF-8");
+        message.setHeader("Content-Type", "text/html; charset=\"utf-8\"");
 
         try {
             message.setContent(originMsg.getContent(), originMsg.getContentType());
