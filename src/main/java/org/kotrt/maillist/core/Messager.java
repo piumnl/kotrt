@@ -190,7 +190,13 @@ public class Messager {
 
 
         // 设置邮件主题
-        message.setSubject(originMsg.getSubject());
+        final String content;
+        try {
+            content = MimeUtility.encodeText(originMsg.getSubject(), "utf8", "B");
+        } catch (UnsupportedEncodingException e) {
+            throw new RuntimeException(e);
+        }
+        message.setSubject(content);
         // 设置邮件的发送时间,默认立即发送
         message.setSentDate(new Date());
 
